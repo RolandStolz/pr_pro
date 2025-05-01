@@ -1,0 +1,25 @@
+[project]
+name = "pr-pro"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Roland Stolz", email = "roland.stolz9@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.11.4",
+]
+
+[project.scripts]
+pr-pro = "pr_pro:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+format.quote-style = "single"
+target-version = "py313"
