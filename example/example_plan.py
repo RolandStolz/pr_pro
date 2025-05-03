@@ -15,6 +15,8 @@ def main():
     cable_pulldown = RepsRPEExercise(name='Straight arm cable pulldown')
     pallov_press = RepsRPEExercise(name='Pallov press')
     squat_hold = DurationExercise(name='Squat hold')
+    hanging_knee_raise = RepsAndWeightsExercise(name='Hanging knee raise')
+    reverse_hyperextension = RepsExercise(name='Reverse hyperextension')
 
     program = (
         Program(name='Test program')
@@ -100,8 +102,29 @@ def main():
             )
         )
         .add_component(
+            SingleExercise(exercise=backsquat).add_repeating_set(
+                4, backsquat.create_set(8, percentage=0.6)
+            )
+        )
+        .add_component(
             SingleExercise(exercise=deadlift, notes='Every minute on the minute').add_repeating_set(
                 10, deadlift.create_set(2, percentage=0.5)
+            )
+        )
+        .add_component(
+            SingleExercise(exercise=bench_press).add_repeating_set(
+                4, bench_press.create_set(10, percentage=0.6)
+            )
+        )
+        .add_component(
+            ExerciseGroup(
+                exercises=[hanging_knee_raise, reverse_hyperextension]
+            ).add_repeating_group_sets(
+                4,
+                {
+                    hanging_knee_raise: hanging_knee_raise.create_set(6, weight=10),
+                    reverse_hyperextension: reverse_hyperextension.create_set(6),
+                },
             )
         )
     )
