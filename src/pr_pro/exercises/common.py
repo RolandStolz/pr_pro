@@ -1,4 +1,5 @@
-from pr_pro.sets import RepsExercise, RepsAndWeightsExercise
+from pr_pro.exercise import RepsExercise
+from pr_pro.exercise import RepsAndWeightsExercise
 
 
 pullup = RepsExercise(name='Pullup')

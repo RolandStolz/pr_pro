@@ -1,7 +1,7 @@
 from typing import Self
 from pydantic import BaseModel
 
-from pr_pro.sets import Exercise
+from pr_pro.exercise import Exercise
 from pr_pro.workout_component import SingleExercise, WorkoutComponent
 
 

@@ -1,17 +1,18 @@
 from pr_pro.core import Program, WorkoutSession
+from pr_pro.exercise import RepsExercise
 from pr_pro.exercises.common import backsquat, deadlift, bench_press, split_squat, pullup, pushup
-from pr_pro.sets import RepsExercise, RepsAndWeightsExercise
+from pr_pro.exercise import RepsAndWeightsExercise, RepsRPEExercise
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
 
 
 def main():
     box_jump = RepsExercise(name='Box jump')
     pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
-    dumbbell_shoulder_press = RepsAndWeightsExercise(name='Dumbbell shoulder press')
+    dumbbell_shoulder_press = RepsRPEExercise(name='Dumbbell shoulder press')
     hip_thrust = RepsAndWeightsExercise(name='Hip thrust')
     side_plank_leg_raise = RepsExercise(name='Side plank leg raise')
-    cable_pulldown = RepsAndWeightsExercise(name='Straight arm cable pulldown')
-    pallov_press = RepsAndWeightsExercise(name='Pallov press')
+    cable_pulldown = RepsRPEExercise(name='Straight arm cable pulldown')
+    pallov_press = RepsRPEExercise(name='Pallov press')
 
     program = (
         Program(name='Test program')
@@ -38,7 +39,7 @@ def main():
                 4,
                 {
                     pendlay_row: pendlay_row.create_set(6, percentage=0.6),
-                    dumbbell_shoulder_press: dumbbell_shoulder_press.create_set(10, 0),
+                    dumbbell_shoulder_press: dumbbell_shoulder_press.create_set(10, rpe=6),
                 },
             )
         )
@@ -76,8 +77,8 @@ def main():
             ExerciseGroup(exercises=[cable_pulldown, pallov_press]).add_repeating_group_sets(
                 4,
                 {
-                    cable_pulldown: cable_pulldown.create_set(10, weight=0),
-                    pallov_press: pallov_press.create_set(10, weight=0),
+                    cable_pulldown: cable_pulldown.create_set(10, rpe=6),
+                    pallov_press: pallov_press.create_set(10, rpe=6),
                 },
             )
         )

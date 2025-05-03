@@ -2,7 +2,8 @@ from abc import abstractmethod
 from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
-from pr_pro.sets import Exercise, RepsAndWeightsExercise, WorkingSet
+from pr_pro.exercise import Exercise, RepsAndWeightsExercise
+from pr_pro.sets import WorkingSet
 
 
 class WorkoutComponent(BaseModel):
