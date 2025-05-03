@@ -25,9 +25,11 @@ def main():
     program.add_best_exercise(pendlay_row, program.best_exercise_values[deadlift] * 0.6)
 
     w1d1 = (
-        WorkoutSession(id='W1D1')
+        WorkoutSession(id='W1D1', notes='Power day.')
         .add_component(
-            SingleExercise(exercise=box_jump).add_repeating_set(5, box_jump.create_set(4))
+            SingleExercise(exercise=box_jump, notes='Good warmup please!').add_repeating_set(
+                5, box_jump.create_set(4)
+            )
         )
         .add_component(
             SingleExercise(exercise=backsquat).add_repeating_set(
@@ -36,7 +38,8 @@ def main():
         )
         .add_component(
             ExerciseGroup(
-                exercises=[pendlay_row, dumbbell_shoulder_press]
+                exercises=[pendlay_row, dumbbell_shoulder_press],
+                notes='Put down completely for pendlay row.',
             ).add_repeating_group_sets(
                 4,
                 {
@@ -60,7 +63,7 @@ def main():
     w1d2 = (
         WorkoutSession(id='W1D2')
         .add_component(
-            SingleExercise(exercise=deadlift).add_repeating_set(
+            SingleExercise(exercise=deadlift, notes='Squeeze glutes!').add_repeating_set(
                 3, deadlift.create_set(12, percentage=0.5)
             )
         )
@@ -70,7 +73,9 @@ def main():
             )
         )
         .add_component(
-            ExerciseGroup(exercises=[pullup, pushup]).add_repeating_group_sets(
+            ExerciseGroup(
+                exercises=[pullup, pushup], notes='Pullup with reverse grip'
+            ).add_repeating_group_sets(
                 5,
                 {pullup: pullup.create_set(1), pushup: pushup.create_set(6)},
             )
@@ -87,9 +92,17 @@ def main():
     )
     program.add_workout_session(w1d2)
 
-    w1d3 = WorkoutSession(id='W1D3').add_component(
-        SingleExercise(exercise=squat_hold).add_repeating_set(
-            3, squat_hold.create_set(duration=time(minute=1))
+    w1d3 = (
+        WorkoutSession(id='W1D3')
+        .add_component(
+            SingleExercise(exercise=squat_hold).add_repeating_set(
+                3, squat_hold.create_set(duration=time(minute=1))
+            )
+        )
+        .add_component(
+            SingleExercise(exercise=deadlift, notes='Every minute on the minute').add_repeating_set(
+                10, deadlift.create_set(2, percentage=0.5)
+            )
         )
     )
     program.add_workout_session(w1d3)

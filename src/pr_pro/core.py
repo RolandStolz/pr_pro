@@ -7,11 +7,14 @@ from pr_pro.workout_component import SingleExercise, WorkoutComponent
 
 class WorkoutSession(BaseModel):
     id: str
+    notes: str | None = None
     workout_components: list[WorkoutComponent] = []
 
     def __str__(self):
+        notes_str = f'notes: {self.notes}\n' if self.notes else ''
         return (
             f'--- {self.id} ---\n'
+            + notes_str
             + '\n'.join([wc.__str__() for wc in self.workout_components])
             + '\n'
         )

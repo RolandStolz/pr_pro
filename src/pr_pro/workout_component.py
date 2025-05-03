@@ -7,6 +7,7 @@ from pr_pro.sets import WorkingSet
 
 
 class WorkoutComponent(BaseModel):
+    notes: str | None = None
     model_config = ConfigDict(validate_assignment=True)
 
     @abstractmethod
@@ -30,9 +31,11 @@ class SingleExercise(WorkoutComponent):
 
     def __str__(self) -> str:
         line_start = '\n  '
+        notes_str = f'{line_start}notes: {self.notes}' if self.notes else ''
         return (
             str(self.exercise.name)
             + f' with {len(self.sets)} sets:'
+            + notes_str
             + line_start
             + line_start.join(s.__str__() for s in self.sets)
         )
@@ -70,10 +73,12 @@ class ExerciseGroup(WorkoutComponent):
 
     def __str__(self) -> str:
         line_start = '\n  '
+        notes_str = f'{line_start}notes: {self.notes}' if self.notes else ''
         n_sets = len(self.exercise_sets_dict[self.exercises[0]])
         return (
             ' + '.join(e.name for e in self.exercises)
             + f' with {n_sets} sets:'
+            + notes_str
             + line_start
             + line_start.join(
                 ' + '.join(self.exercise_sets_dict[e][i].__str__() for e in self.exercises)
@@ -109,7 +114,6 @@ if __name__ == '__main__':
 
     component = SingleExercise(exercise=squat)
     component.add_set(squat.create_set(10, 80))
-    # print(component)
 
     group = ExerciseGroup(exercises=[bench_press, row])
     group.add_set(bench_press.create_set(reps=10, weight=60), exercise=bench_press)
