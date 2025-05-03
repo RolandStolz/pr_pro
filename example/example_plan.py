@@ -1,5 +1,6 @@
+from datetime import time
 from pr_pro.core import Program, WorkoutSession
-from pr_pro.exercise import RepsExercise
+from pr_pro.exercise import DurationExercise, RepsExercise
 from pr_pro.exercises.common import backsquat, deadlift, bench_press, split_squat, pullup, pushup
 from pr_pro.exercise import RepsAndWeightsExercise, RepsRPEExercise
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
@@ -13,6 +14,7 @@ def main():
     side_plank_leg_raise = RepsExercise(name='Side plank leg raise')
     cable_pulldown = RepsRPEExercise(name='Straight arm cable pulldown')
     pallov_press = RepsRPEExercise(name='Pallov press')
+    squat_hold = DurationExercise(name='Squat hold')
 
     program = (
         Program(name='Test program')
@@ -84,6 +86,13 @@ def main():
         )
     )
     program.add_workout_session(w1d2)
+
+    w1d3 = WorkoutSession(id='W1D3').add_component(
+        SingleExercise(exercise=squat_hold).add_repeating_set(
+            3, squat_hold.create_set(duration=time(minute=1))
+        )
+    )
+    program.add_workout_session(w1d3)
 
     print(program)
 

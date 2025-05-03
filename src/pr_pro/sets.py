@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-
 from pydantic import BaseModel, Field, model_validator
+
+from datetime import time
 
 
 class WorkingSet(BaseModel):
-    rest_between: int | None = None
+    rest_between: time | None = None
 
     def __str__(self) -> str:
         return ', '.join(
@@ -48,3 +49,7 @@ class OlyWeightLiftingSet(RepsSet):
         if not any(data.get(field) is not None for field in ['weight', 'percentage']):
             raise ValueError('At least one of weight, or percentage must be provided.')
         return data
+
+
+class DurationSet(WorkingSet):
+    duration: time

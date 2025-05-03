@@ -1,4 +1,12 @@
-from pr_pro.sets import OlyWeightLiftingSet, RepsAndWeightsSet, RepsRPESet, RepsSet, WorkingSet
+from datetime import time
+from pr_pro.sets import (
+    DurationSet,
+    OlyWeightLiftingSet,
+    RepsAndWeightsSet,
+    RepsRPESet,
+    RepsSet,
+    WorkingSet,
+)
 
 
 from pydantic import BaseModel, ConfigDict
@@ -81,6 +89,18 @@ class OlyWeightLiftingExercise(RepsExercise):
             weight=weight,
             percentage=percentage,
         )
+
+    if TYPE_CHECKING:
+
+        def __hash__(self) -> int: ...
+
+
+class DurationExercise(Exercise):
+    set_class = DurationSet
+
+    @staticmethod
+    def create_set(duration: time) -> DurationSet:
+        return DurationSet(duration=duration)
 
     if TYPE_CHECKING:
 
