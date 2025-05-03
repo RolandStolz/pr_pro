@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
-from pr_pro.exercise import Exercise, RepsAndWeightsExercise, WorkingSet
+from pr_pro.sets import Exercise, RepsAndWeightsExercise, WorkingSet
 
 
 class WorkoutComponent(BaseModel):
@@ -10,6 +10,11 @@ class WorkoutComponent(BaseModel):
 
     @abstractmethod
     def add_set(self, working_set: WorkingSet) -> Self: ...
+
+    def add_repeating_set(self, n_repeats: int, working_set: WorkingSet) -> Self:
+        for _ in range(n_repeats):
+            self.add_set(working_set)
+        return self
 
 
 class SingleExercise(WorkoutComponent):
@@ -21,6 +26,15 @@ class SingleExercise(WorkoutComponent):
         if not all(isinstance(s, self.exercise.set_class) for s in self.sets):
             raise ValueError(f'All sets must be of type {self.exercise.set_class.__name__}.')
         return self
+
+    def __str__(self) -> str:
+        line_start = '\n  '
+        return (
+            str(self.exercise.name)
+            + ' with'
+            + line_start
+            + line_start.join(s.__str__() for s in self.sets)
+        )
 
     def add_set(self, working_set: WorkingSet) -> Self:
         self.sets.append(working_set)
@@ -64,6 +78,13 @@ class ExerciseGroup(WorkoutComponent):
                 raise ValueError(f'Exercise {exercise.name} is not part of this group.')
 
             self.exercise_sets_dict[exercise].append(working_set)
+        return self
+
+    def add_repeating_group_sets(
+        self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]
+    ) -> Self:
+        for _ in range(n_repeats):
+            self.add_group_sets(exercise_sets)
         return self
 
 
