@@ -2,7 +2,7 @@ from typing import Self
 from pydantic import BaseModel
 
 from pr_pro.sets import Exercise
-from pr_pro.workout_component import WorkoutComponent
+from pr_pro.workout_component import SingleExercise, WorkoutComponent
 
 
 class WorkoutSession(BaseModel):
@@ -10,11 +10,20 @@ class WorkoutSession(BaseModel):
     workout_components: list[WorkoutComponent] = []
 
     def __str__(self):
-        return f'--- {self.id} ---\n' + '\n'.join([wc.__str__() for wc in self.workout_components]) + '\n'
+        return (
+            f'--- {self.id} ---\n'
+            + '\n'.join([wc.__str__() for wc in self.workout_components])
+            + '\n'
+        )
 
     def add_component(self, workout_component: WorkoutComponent) -> Self:
         self.workout_components.append(workout_component)
         return self
+
+    def add_single_exercise(self, exercise: Exercise) -> SingleExercise:
+        component = SingleExercise(exercise=exercise)
+        self.add_component(component)
+        return component
 
 
 class Program(BaseModel):
@@ -35,6 +44,10 @@ class Program(BaseModel):
         return workout_str + best_exercise_str + workout_sessions_str
 
     def add_workout_session(self, workout_session: WorkoutSession) -> Self:
+        if workout_session.id in [ws.id for ws in self.workout_sessions]:
+            raise ValueError(
+                f'Workout session id must be unique. {workout_session.id} already exists.'
+            )
         self.workout_sessions.append(workout_session)
         return self
 

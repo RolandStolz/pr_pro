@@ -1,8 +1,8 @@
-from pr_pro.sets import RepititionExercise, RepsAndWeightsExercise
+from pr_pro.sets import RepsExercise, RepsAndWeightsExercise
 
 
-pullup = RepititionExercise(name='Pullup')
-pullup = RepititionExercise(name='Pushup')
+pullup = RepsExercise(name='Pullup')
+pushup = RepsExercise(name='Pushup')
 
 backsquat = RepsAndWeightsExercise(name='Backsquat')
 deadlift = RepsAndWeightsExercise(name='Deadlift')

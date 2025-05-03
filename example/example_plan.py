@@ -1,30 +1,88 @@
 from pr_pro.core import Program, WorkoutSession
-from pr_pro.exercises.common import backsquat, deadlift, bench_press, row
-from pr_pro.workout_component import SingleExercise
+from pr_pro.exercises.common import backsquat, deadlift, bench_press, split_squat, pullup, pushup
+from pr_pro.sets import RepsExercise, RepsAndWeightsExercise
+from pr_pro.workout_component import ExerciseGroup, SingleExercise
 
 
 def main():
+    box_jump = RepsExercise(name='Box jump')
+    pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
+    dumbbell_shoulder_press = RepsAndWeightsExercise(name='Dumbbell shoulder press')
+    hip_thrust = RepsAndWeightsExercise(name='Hip thrust')
+    side_plank_leg_raise = RepsExercise(name='Side plank leg raise')
+    cable_pulldown = RepsAndWeightsExercise(name='Straight arm cable pulldown')
+    pallov_press = RepsAndWeightsExercise(name='Pallov press')
+
     program = (
         Program(name='Test program')
         .add_best_exercise(backsquat, 55)
         .add_best_exercise(deadlift, 90)
         .add_best_exercise(bench_press, 50)
     )
-    program.add_best_exercise(row, program.best_exercise_values[deadlift] * 0.6)
+    program.add_best_exercise(pendlay_row, program.best_exercise_values[deadlift] * 0.6)
 
-    session1 = WorkoutSession(id='W1D1').add_component(
-        SingleExercise(exercise=backsquat).add_repeating_set(
-            4, backsquat.create_set(repititions=10, weight=80)
+    w1d1 = (
+        WorkoutSession(id='W1D1')
+        .add_component(
+            SingleExercise(exercise=box_jump).add_repeating_set(5, box_jump.create_set(4))
+        )
+        .add_component(
+            SingleExercise(exercise=backsquat).add_repeating_set(
+                4, backsquat.create_set(5, percentage=0.55)
+            )
+        )
+        .add_component(
+            ExerciseGroup(
+                exercises=[pendlay_row, dumbbell_shoulder_press]
+            ).add_repeating_group_sets(
+                4,
+                {
+                    pendlay_row: pendlay_row.create_set(6, percentage=0.6),
+                    dumbbell_shoulder_press: dumbbell_shoulder_press.create_set(10, 0),
+                },
+            )
+        )
+        .add_component(
+            ExerciseGroup(exercises=[hip_thrust, side_plank_leg_raise]).add_repeating_group_sets(
+                4,
+                {
+                    hip_thrust: hip_thrust.create_set(8, weight=60),
+                    side_plank_leg_raise: side_plank_leg_raise.create_set(10),
+                },
+            )
         )
     )
-    program.add_workout_session(session1)
+    program.add_workout_session(w1d1)
 
-    session2 = WorkoutSession(id='W1D2').add_component(
-        SingleExercise(exercise=backsquat).add_repeating_set(
-            4, backsquat.create_set(repititions=10, weight=90)
+    w1d2 = (
+        WorkoutSession(id='W1D2')
+        .add_component(
+            SingleExercise(exercise=deadlift).add_repeating_set(
+                3, deadlift.create_set(12, percentage=0.5)
+            )
+        )
+        .add_component(
+            SingleExercise(exercise=split_squat).add_repeating_set(
+                4, backsquat.create_set(6, weight=0)
+            )
+        )
+        .add_component(
+            ExerciseGroup(exercises=[pullup, pushup]).add_repeating_group_sets(
+                5,
+                {pullup: pullup.create_set(1), pushup: pushup.create_set(6)},
+            )
+        )
+        .add_component(
+            ExerciseGroup(exercises=[cable_pulldown, pallov_press]).add_repeating_group_sets(
+                4,
+                {
+                    cable_pulldown: cable_pulldown.create_set(10, weight=0),
+                    pallov_press: pallov_press.create_set(10, weight=0),
+                },
+            )
         )
     )
-    program.add_workout_session(session2)
+    program.add_workout_session(w1d2)
 
     print(program)
 

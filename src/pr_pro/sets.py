@@ -7,8 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class WorkingSet(BaseModel):
+    rest_between: int | None = None
+
     def __str__(self) -> str:
-        return " | ".join([f'{a} {value}' for a, value in self.model_dump().items()])
+        return ', '.join(
+            [f'{a} {value}' for a, value in self.model_dump().items() if value is not None]
+        )
 
 
 class Exercise(BaseModel):
@@ -17,42 +21,43 @@ class Exercise(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     @abstractmethod
-    def create_set(self, repititions: int) -> WorkingSet: ...
+    def create_set(self, reps: int) -> WorkingSet: ...
 
     if TYPE_CHECKING:
         # For pylance
         def __hash__(self) -> int: ...
 
 
-class RepititionSet(WorkingSet):
-    repititions: int
+class RepsSet(WorkingSet):
+    reps: int
 
 
-class RepititionExercise(Exercise):
-    set_class = RepititionSet
+class RepsExercise(Exercise):
+    set_class = RepsSet
 
     @staticmethod
-    def create_set(repititions: int) -> RepititionSet:
-        return RepititionSet(repititions=repititions)
+    def create_set(reps: int) -> RepsSet:
+        return RepsSet(reps=reps)
 
     if TYPE_CHECKING:
+
         def __hash__(self) -> int: ...
 
 
-class RepsAndWeightsSet(RepititionSet):
+class RepsAndWeightsSet(RepsSet):
     weight: float | None = Field(default=None, ge=0)
+    percentage: float | None = Field(default=None, ge=0)
     relative_percentage: float | None = Field(default=None, ge=0)
-    absolute_percentage: float | None = Field(default=None, ge=0)
 
     @model_validator(mode='before')
     @classmethod
     def check_at_least_one_weight(cls, data):
         if not any(
             data.get(field) is not None
-            for field in ['weight', 'relative_percentage', 'absolute_percentage']
+            for field in ['weight', 'relative_percentage', 'percentage']
         ):
             raise ValueError(
-                'At least one of weight, relative_percentage, or absolute_percentage must be provided.'
+                'At least one of weight, relative_percentage, or percentage must be provided.'
             )
         return data
 
@@ -62,31 +67,32 @@ class RepsAndWeightsExercise(Exercise):
 
     @staticmethod
     def create_set(
-        repititions: int,
+        reps: int,
         weight: float | None = None,
+        percentage: float | None = None,
         relative_percentage: float | None = None,
-        absolute_percentage: float | None = None,
     ) -> RepsAndWeightsSet:
         return RepsAndWeightsSet(
-            repititions=repititions,
+            reps=reps,
             weight=weight,
             relative_percentage=relative_percentage,
-            absolute_percentage=absolute_percentage,
+            percentage=percentage,
         )
 
     if TYPE_CHECKING:
+
         def __hash__(self) -> int: ...
 
 
-class OlyWeightLiftingSet(RepititionSet):
+class OlyWeightLiftingSet(RepsSet):
     weight: float | None = Field(default=None, ge=0)
-    absolute_percentage: float | None = Field(default=None, ge=0)
+    percentage: float | None = Field(default=None, ge=0)
 
     @model_validator(mode='before')
     @classmethod
     def check_at_least_one_weight(cls, data):
-        if not any(data.get(field) is not None for field in ['weight', 'absolute_percentage']):
-            raise ValueError('At least one of weight, or absolute_percentage must be provided.')
+        if not any(data.get(field) is not None for field in ['weight', 'percentage']):
+            raise ValueError('At least one of weight, or percentage must be provided.')
         return data
 
 
@@ -95,20 +101,21 @@ class OlyWeightLiftingExercise(Exercise):
 
     @staticmethod
     def create_set(
-        repititions: int,
+        reps: int,
         weight: float | None = None,
-        absolute_percentage: float | None = None,
+        percentage: float | None = None,
     ) -> OlyWeightLiftingSet:
         return OlyWeightLiftingSet(
-            repititions=repititions,
+            reps=reps,
             weight=weight,
-            absolute_percentage=absolute_percentage,
+            percentage=percentage,
         )
 
     if TYPE_CHECKING:
+
         def __hash__(self) -> int: ...
 
 
 if __name__ == '__main__':
-    test = OlyWeightLiftingExercise(name='Snatch').create_set(repititions=2, weight=60)
+    test = OlyWeightLiftingExercise(name='Snatch').create_set(reps=2, weight=60)
     print(test)

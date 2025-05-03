@@ -31,7 +31,7 @@ class SingleExercise(WorkoutComponent):
         line_start = '\n  '
         return (
             str(self.exercise.name)
-            + ' with'
+            + f' with {len(self.sets)} sets:'
             + line_start
             + line_start.join(s.__str__() for s in self.sets)
         )
@@ -67,6 +67,19 @@ class ExerciseGroup(WorkoutComponent):
         self.exercise_sets_dict[exercise].append(working_set)
         return self
 
+    def __str__(self) -> str:
+        line_start = '\n  '
+        n_sets = len(self.exercise_sets_dict[self.exercises[0]])
+        return (
+            ' + '.join(e.name for e in self.exercises)
+            + f' with {n_sets} sets:'
+            + line_start
+            + line_start.join(
+                ' + '.join(self.exercise_sets_dict[e][i].__str__() for e in self.exercises)
+                for i in range(n_sets)
+            )
+        )
+
     def add_group_sets(self, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
         if len(exercise_sets) != len(self.exercises):
             raise ValueError(
@@ -98,8 +111,8 @@ if __name__ == '__main__':
     # print(component)
 
     group = ExerciseGroup(exercises=[bench_press, row])
-    group.add_set(bench_press.create_set(repititions=10, weight=60), exercise=bench_press)
-    group.add_set(row.create_set(repititions=10, weight=50), exercise=row)
+    group.add_set(bench_press.create_set(reps=10, weight=60), exercise=bench_press)
+    group.add_set(row.create_set(reps=10, weight=50), exercise=row)
 
     group.add_group_sets({row: row.create_set(8, 60), bench_press: bench_press.create_set(8, 70)})
     print(group)
