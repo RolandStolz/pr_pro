@@ -1,4 +1,9 @@
+from abc import abstractmethod
 from datetime import time
+from typing import TYPE_CHECKING, ClassVar
+
+from pydantic import BaseModel, ConfigDict
+
 from pr_pro.sets import (
     DurationSet,
     OlyWeightLiftingSet,
@@ -9,20 +14,14 @@ from pr_pro.sets import (
 )
 
 
-from pydantic import BaseModel, ConfigDict
-
-
-from abc import abstractmethod
-from typing import TYPE_CHECKING, ClassVar
-
-
 class Exercise(BaseModel):
     set_class: ClassVar[type[WorkingSet]] = WorkingSet
     name: str
     model_config = ConfigDict(frozen=True)
 
     @abstractmethod
-    def create_set(self, reps: int) -> WorkingSet: ...
+    @staticmethod
+    def create_set(reps: int) -> WorkingSet: ...
 
     if TYPE_CHECKING:
         # For pylance

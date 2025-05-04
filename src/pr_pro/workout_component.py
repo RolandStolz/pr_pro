@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Self
+
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
 from pr_pro.exercise import Exercise, RepsAndWeightsExercise
@@ -17,6 +18,9 @@ class WorkoutComponent(BaseModel):
         for _ in range(n_repeats):
             self.add_set(working_set)
         return self
+
+    def add_rs(self, n_repeats: int, working_set: WorkingSet) -> Self:
+        return self.add_repeating_set(n_repeats, working_set)
 
 
 class SingleExercise(WorkoutComponent):
@@ -99,12 +103,18 @@ class ExerciseGroup(WorkoutComponent):
             self.exercise_sets_dict[exercise].append(working_set)
         return self
 
+    def add_gs(self, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
+        return self.add_group_sets(exercise_sets)
+
     def add_repeating_group_sets(
         self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]
     ) -> Self:
         for _ in range(n_repeats):
             self.add_group_sets(exercise_sets)
         return self
+
+    def add_rgs(self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
+        return self.add_repeating_group_sets(n_repeats, exercise_sets)
 
 
 if __name__ == '__main__':

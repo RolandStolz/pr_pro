@@ -1,4 +1,5 @@
 from typing import Self
+
 from pydantic import BaseModel
 
 from pr_pro.exercise import Exercise
@@ -23,10 +24,16 @@ class WorkoutSession(BaseModel):
         self.workout_components.append(workout_component)
         return self
 
-    def add_single_exercise(self, exercise: Exercise) -> SingleExercise:
+    def add_co(self, workout_component: WorkoutComponent) -> Self:
+        return self.add_component(workout_component)
+
+    def add_single_exercise(self, exercise: Exercise) -> Self:
         component = SingleExercise(exercise=exercise)
         self.add_component(component)
-        return component
+        return self
+
+    def add_se(self, exercise: Exercise) -> Self:
+        return self.add_single_exercise(exercise)
 
 
 class Program(BaseModel):
