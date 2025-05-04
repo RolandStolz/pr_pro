@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Any, Self
+from typing import Any, Self, Sequence
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
@@ -41,12 +41,11 @@ class SingleExercise(WorkoutComponent):
     @staticmethod
     def from_prev_component(component: SingleExercise, **kwargs) -> SingleExercise:
         new_component = component.model_copy()
-        if kwargs['sets']:
+        if 'sets' in kwargs:
             n_sets = len(component.sets)
             assert n_sets > 0
             new_component.sets = [component.sets[0]] * (kwargs['sets'] + n_sets)
-
-        del kwargs['sets']
+            del kwargs['sets']
 
         for key, value in kwargs.items():
             # for w_set in new_component.sets:
@@ -83,7 +82,27 @@ class ExerciseGroup(WorkoutComponent):
 
     @staticmethod
     def from_prev_component(component: ExerciseGroup, **kwargs) -> ExerciseGroup:
-        raise NotImplementedError
+        new_component = component.model_copy()
+
+        if 'sets' in kwargs:
+            n_sets = len(component.exercise_sets_dict[component.exercises[0]])
+            assert n_sets > 0
+            for e in component.exercises:
+                new_component.exercise_sets_dict[e] = [component.exercise_sets_dict[e][0]] * (
+                    kwargs['sets'] + n_sets
+                )
+            del kwargs['sets']
+
+        for key, value in kwargs.items():
+            # for w_set in new_component.sets:
+            assert isinstance(value, Sequence)
+            assert len(value) == len(component.exercises)
+
+            for i, e in enumerate(component.exercises):
+                w_set = new_component.exercise_sets_dict[e][0]
+                w_set.__setattr__(key, w_set.__getattribute__(key) + value[i])
+
+        return new_component
 
     @model_validator(mode='after')
     def check_same_type(self, info: ValidationInfo) -> Self:
@@ -99,6 +118,13 @@ class ExerciseGroup(WorkoutComponent):
             raise ValueError(f'Exercise {exercise.name} is not part of this group.')
 
         self.exercise_sets_dict[exercise].append(working_set)
+        return self
+
+    def add_repeating_set(
+        self, n_repeats: int, working_set: WorkingSet, *, exercise: Exercise
+    ) -> Self:
+        for _ in range(n_repeats):
+            self.add_set(working_set, exercise=exercise)
         return self
 
     def __str__(self) -> str:
@@ -148,8 +174,19 @@ if __name__ == '__main__':
     row = RepsAndWeightsExercise(name='Row')
     squat = RepsAndWeightsExercise(name='Squat')
 
-    component = SingleExercise(exercise=squat)
-    component.add_repeating_set(3, squat.create_set(10, 80))
+    co = SingleExercise(exercise=squat)
+    co.add_repeating_set(3, squat.create_set(10, 80))
 
-    component2 = SingleExercise.from_prev_component(component, sets=+1, reps=-2, weight=+10, a=+1)
-    print(component2)
+    co2 = SingleExercise.from_prev_component(co, sets=+1, reps=-2, weight=+10)
+    print(co2)
+
+    gco = ExerciseGroup(exercises=[bench_press, row]).add_repeating_group_sets(
+        4,
+        {
+            bench_press: bench_press.create_set(10, 60),
+            row: row.create_set(10, 60),
+        },
+    )
+
+    gco2 = ExerciseGroup.from_prev_component(gco, reps=(+2, +2))
+    print(gco2)
