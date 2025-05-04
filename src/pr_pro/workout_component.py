@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Self
 
@@ -10,6 +11,10 @@ from pr_pro.sets import WorkingSet
 class WorkoutComponent(BaseModel):
     notes: str | None = None
     model_config = ConfigDict(validate_assignment=True)
+
+    @staticmethod
+    @abstractmethod
+    def from_prev_component(component: WorkoutComponent, **kwargs) -> WorkoutComponent: ...
 
     @abstractmethod
     def add_set(self, working_set: WorkingSet) -> Self: ...
@@ -32,6 +37,23 @@ class SingleExercise(WorkoutComponent):
         if not all(isinstance(s, self.exercise.set_class) for s in self.sets):
             raise ValueError(f'All sets must be of type {self.exercise.set_class.__name__}.')
         return self
+
+    @staticmethod
+    def from_prev_component(component: SingleExercise, **kwargs) -> SingleExercise:
+        new_component = component.model_copy()
+        if kwargs['sets']:
+            n_sets = len(component.sets)
+            assert n_sets > 0
+            new_component.sets = [component.sets[0]] * (kwargs['sets'] + n_sets)
+
+        del kwargs['sets']
+
+        for key, value in kwargs.items():
+            # for w_set in new_component.sets:
+            w_set = new_component.sets[0]
+            w_set.__setattr__(key, w_set.__getattribute__(key) + value)
+
+        return new_component
 
     def __str__(self) -> str:
         line_start = '\n  '
@@ -58,6 +80,10 @@ class ExerciseGroup(WorkoutComponent):
             raise ValueError('Exercises must be unique in the group.')
 
         self.exercise_sets_dict = {e: [] for e in self.exercises}
+
+    @staticmethod
+    def from_prev_component(component: ExerciseGroup, **kwargs) -> ExerciseGroup:
+        raise NotImplementedError
 
     @model_validator(mode='after')
     def check_same_type(self, info: ValidationInfo) -> Self:
@@ -123,11 +149,7 @@ if __name__ == '__main__':
     squat = RepsAndWeightsExercise(name='Squat')
 
     component = SingleExercise(exercise=squat)
-    component.add_set(squat.create_set(10, 80))
+    component.add_repeating_set(3, squat.create_set(10, 80))
 
-    group = ExerciseGroup(exercises=[bench_press, row])
-    group.add_set(bench_press.create_set(reps=10, weight=60), exercise=bench_press)
-    group.add_set(row.create_set(reps=10, weight=50), exercise=row)
-
-    group.add_group_sets({row: row.create_set(8, 60), bench_press: bench_press.create_set(8, 70)})
-    print(group)
+    component2 = SingleExercise.from_prev_component(component, sets=+1, reps=-2, weight=+10, a=+1)
+    print(component2)

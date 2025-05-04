@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from datetime import time
 from typing import TYPE_CHECKING, ClassVar
 
@@ -14,13 +14,13 @@ from pr_pro.sets import (
 )
 
 
-class Exercise(BaseModel):
+class Exercise(BaseModel, ABC):
     set_class: ClassVar[type[WorkingSet]] = WorkingSet
     name: str
     model_config = ConfigDict(frozen=True)
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def create_set(reps: int) -> WorkingSet: ...
 
     if TYPE_CHECKING:
