@@ -90,10 +90,9 @@ class RepsAndWeightsSet(RepsSet):
             self.weight = weight
             self.percentage = percentage
         else:
+            assert self.weight is not None
             self.relative_percentage = (
-                compute_config.one_rm_calculator.max_weight_from_reps(
-                    best_exercise_value, self.reps
-                )
+                compute_config.one_rm_calculator.one_rep_max(self.weight, self.reps)
                 / best_exercise_value
             )
 
