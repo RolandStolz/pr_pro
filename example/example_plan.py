@@ -1,6 +1,7 @@
 from datetime import time
+from pr_pro.workout_session import WorkoutSession
 from pr_pro.configs import ComputeConfig
-from pr_pro.core import Program, WorkoutSession
+from pr_pro.program import Program
 from pr_pro.exercise import DurationExercise, RepsExercise
 from pr_pro.exercises.common import backsquat, deadlift, bench_press, split_squat, pullup, pushup
 from pr_pro.exercise import RepsAndWeightsExercise, RepsRPEExercise

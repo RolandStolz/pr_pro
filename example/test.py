@@ -1,5 +1,6 @@
+from pr_pro.workout_session import WorkoutSession
 from pr_pro.configs import ComputeConfig
-from pr_pro.core import Program, WorkoutSession
+from pr_pro.program import Program
 from pr_pro.exercise import RepsAndWeightsExercise
 from pr_pro.exercises.common import backsquat, pushup
 from pr_pro.workout_component import SingleExercise, ExerciseGroup
