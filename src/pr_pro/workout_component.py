@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
-from copy import copy
+from copy import deepcopy
 import logging
 from typing import Any, Self, Sequence
 
@@ -144,7 +144,7 @@ class ExerciseGroup(WorkoutComponent):
         self, n_repeats: int, working_set: WorkingSet, *, exercise: Exercise
     ) -> Self:
         for _ in range(n_repeats):
-            self.add_set(working_set, exercise=exercise)
+            self.add_set(working_set.model_copy(), exercise=exercise)
         return self
 
     def __str__(self) -> str:
@@ -182,7 +182,7 @@ class ExerciseGroup(WorkoutComponent):
         self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]
     ) -> Self:
         for _ in range(n_repeats):
-            self.add_group_sets(copy(exercise_sets))
+            self.add_group_sets(deepcopy(exercise_sets))
         return self
 
     def add_rgs(self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]) -> Self:

@@ -13,9 +13,14 @@ class WorkingSet(BaseModel):
     rest_between: time | None = None
 
     def __str__(self) -> str:
-        return ', '.join(
-            [f'{a} {value}' for a, value in self.model_dump().items() if value is not None]
-        )
+        formatted_items = []
+        for a, value in self.model_dump().items():
+            if value is not None:
+                if isinstance(value, float):
+                    formatted_items.append(f'{a} {round(value, 3)}')
+                else:
+                    formatted_items.append(f'{a} {value}')
+        return ', '.join(formatted_items)
 
     def compute_values(self, best_exercise_value: float, compute_config: ComputeConfig) -> None:
         # A lot of set types cannot compute values, hence they don't have to redefine the method
@@ -76,12 +81,12 @@ class RepsAndWeightsSet(RepsSet):
             )
             percentage = weight / best_exercise_value
 
-            assert (
-                self.weight is None or self.weight - weight < tol
-            ), f'Missmatch between provided weight {self.weight} and computed weight {weight}.'
-            assert (
-                self.percentage is None or self.percentage - percentage < tol
-            ), f'Missmatch between provided percentage {self.percentage} and computed percentage {percentage}.'
+            assert self.weight is None or self.weight - weight < tol, (
+                f'Missmatch between provided weight {self.weight} and computed weight {weight}.'
+            )
+            assert self.percentage is None or self.percentage - percentage < tol, (
+                f'Missmatch between provided percentage {self.percentage} and computed percentage {percentage}.'
+            )
             self.weight = weight
             self.percentage = percentage
         else:
