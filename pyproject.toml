@@ -11,6 +11,11 @@ dependencies = [
     "pydantic>=2.11.4",
 ]
 
+[project.optional-dependencies]
+plots = [
+    "matplotlib>=3.10.3",
+]
+
 [project.scripts]
 pr-pro = "pr_pro:main"
 
