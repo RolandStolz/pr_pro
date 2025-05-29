@@ -1,3 +1,4 @@
+from pathlib import Path
 from pr_pro.workout_session import WorkoutSession
 from pr_pro.configs import ComputeConfig
 from pr_pro.program import Program
@@ -7,7 +8,7 @@ from pr_pro.workout_component import SingleExercise, ExerciseGroup
 
 
 def main():
-    pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
+    pendlay_row = RepsAndWeightsExercise(name='Pendlay row').register()
 
     program = Program(name='Test program').add_best_exercise_value(backsquat, 100)
     program.add_best_exercise_value(pendlay_row, program.best_exercise_values[backsquat] * 0.6)
@@ -36,8 +37,12 @@ def main():
     )
 
     program.add_workout_session(w1d1)
-    program.compute_program(ComputeConfig())
-    print(program)
+    program.compute_values(ComputeConfig())
+
+    program.write_json_file(Path('test.json'))
+
+    loaded = Program.from_json_file(Path('test.json'))
+    print(loaded)
 
 
 if __name__ == '__main__':

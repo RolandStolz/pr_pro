@@ -132,7 +132,7 @@ def main():
     )
     program.add_workout_session(w1d3)
 
-    program.compute_program(compute_config=ComputeConfig())
+    program.compute_values(compute_config=ComputeConfig())
     print(program)
 
 

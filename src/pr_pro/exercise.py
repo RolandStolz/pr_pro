@@ -1,9 +1,10 @@
 from abc import abstractmethod, ABC
 from datetime import time
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationInfo, computed_field, model_validator
 
+from pr_pro.exercises.registry import get_exercise_by_key_string
 from pr_pro.sets import (
     DurationSet,
     PowerExerciseSet,
@@ -11,11 +12,12 @@ from pr_pro.sets import (
     RepsRPESet,
     RepsSet,
     WorkingSet,
+    WorkingSet_t,
 )
 
 
 class Exercise(BaseModel, ABC):
-    set_class: ClassVar[type[WorkingSet]] = WorkingSet
+    set_class: ClassVar[type[WorkingSet_t]]
     name: str
     model_config = ConfigDict(frozen=True)
 
@@ -23,9 +25,26 @@ class Exercise(BaseModel, ABC):
     @abstractmethod
     def create_set(reps: int) -> WorkingSet: ...
 
-    if TYPE_CHECKING:
-        # For pylance
-        def __hash__(self) -> int: ...
+    def __str__(self) -> str:
+        return f'{self.name} ({self.__class__.__name__})'
+
+    @model_validator(mode='before')
+    @classmethod
+    def _validate_from_key_string_or_dict(cls, data: Any, info: ValidationInfo) -> Any:
+        if isinstance(data, str):
+            return get_exercise_by_key_string(data).model_dump()
+
+        return data
+
+    def register(self) -> Self:
+        """
+        Registers the exercise in the registry.
+        Calling the method is only necessary, if you intent to load a program from a file.
+        """
+        from pr_pro.exercises.registry import register_exercise
+
+        register_exercise(self)
+        return self
 
 
 class RepsExercise(Exercise):
@@ -104,3 +123,12 @@ class DurationExercise(Exercise):
     if TYPE_CHECKING:
 
         def __hash__(self) -> int: ...
+
+
+Exercise_t = (
+    RepsExercise | RepsRPEExercise | RepsAndWeightsExercise | PowerExercise | DurationExercise
+)
+
+if __name__ == '__main__':
+    test = PowerExercise(name='test')
+    print(test.model_dump())

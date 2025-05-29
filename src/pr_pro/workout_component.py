@@ -7,8 +7,8 @@ from typing import Any, Self, Sequence
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
 from pr_pro.configs import ComputeConfig
-from pr_pro.exercise import Exercise, RepsAndWeightsExercise
-from pr_pro.sets import WorkingSet
+from pr_pro.exercise import Exercise_t, RepsAndWeightsExercise
+from pr_pro.sets import WorkingSet_t
 
 logger = logging.getLogger(__name__)
 
@@ -22,25 +22,25 @@ class WorkoutComponent(BaseModel):
     def from_prev_component(component: WorkoutComponent, **kwargs) -> WorkoutComponent: ...
 
     @abstractmethod
-    def add_set(self, working_set: WorkingSet) -> Self: ...
+    def add_set(self, working_set: WorkingSet_t) -> Self: ...
 
-    def add_repeating_set(self, n_repeats: int, working_set: WorkingSet) -> Self:
+    def add_repeating_set(self, n_repeats: int, working_set: WorkingSet_t) -> Self:
         for _ in range(n_repeats):
             self.add_set(working_set.model_copy())
         return self
 
-    def add_rs(self, n_repeats: int, working_set: WorkingSet) -> Self:
+    def add_rs(self, n_repeats: int, working_set: WorkingSet_t) -> Self:
         return self.add_repeating_set(n_repeats, working_set)
 
     @abstractmethod
     def compute_values(
-        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+        self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
     ) -> None: ...
 
 
 class SingleExercise(WorkoutComponent):
-    exercise: Exercise
-    sets: list[WorkingSet] = []
+    exercise: Exercise_t
+    sets: list[WorkingSet_t] = []
 
     @model_validator(mode='after')
     def check_same_type(self, info: ValidationInfo) -> Self:
@@ -56,11 +56,9 @@ class SingleExercise(WorkoutComponent):
             assert n_sets > 0
             new_component.sets = []
             new_component.add_repeating_set(kwargs['sets'] + n_sets, component.sets[0])
-            # new_component.sets = [component.sets[0]] * (kwargs['sets'] + n_sets)
             del kwargs['sets']
 
         for key, value in kwargs.items():
-            # for w_set in new_component.sets:
             w_set = new_component.sets[0]
             w_set.__setattr__(key, w_set.__getattribute__(key) + value)
 
@@ -77,12 +75,12 @@ class SingleExercise(WorkoutComponent):
             + line_start.join(s.__str__() for s in self.sets)
         )
 
-    def add_set(self, working_set: WorkingSet) -> Self:
+    def add_set(self, working_set: WorkingSet_t) -> Self:
         self.sets.append(working_set)
         return self
 
     def compute_values(
-        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+        self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
     ) -> None:
         if self.exercise not in best_exercise_values:
             return None
@@ -91,8 +89,8 @@ class SingleExercise(WorkoutComponent):
 
 
 class ExerciseGroup(WorkoutComponent):
-    exercises: list[Exercise]
-    exercise_sets_dict: dict[Exercise, list[WorkingSet]] = {}
+    exercises: list[Exercise_t]
+    exercise_sets_dict: dict[Exercise_t, list[WorkingSet_t]] = {}
 
     def model_post_init(self, context: Any) -> None:
         if len(self.exercises) != len(set(self.exercises)):
@@ -133,7 +131,7 @@ class ExerciseGroup(WorkoutComponent):
                 )
         return self
 
-    def add_set(self, working_set: WorkingSet, *, exercise: Exercise) -> Self:
+    def add_set(self, working_set: WorkingSet_t, *, exercise: Exercise_t) -> Self:
         if exercise not in self.exercises:
             raise ValueError(f'Exercise {exercise.name} is not part of this group.')
 
@@ -141,7 +139,7 @@ class ExerciseGroup(WorkoutComponent):
         return self
 
     def add_repeating_set(
-        self, n_repeats: int, working_set: WorkingSet, *, exercise: Exercise
+        self, n_repeats: int, working_set: WorkingSet_t, *, exercise: Exercise_t
     ) -> Self:
         for _ in range(n_repeats):
             self.add_set(working_set.model_copy(), exercise=exercise)
@@ -162,7 +160,7 @@ class ExerciseGroup(WorkoutComponent):
             )
         )
 
-    def add_group_sets(self, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
+    def add_group_sets(self, exercise_sets: dict[Exercise_t, WorkingSet_t]) -> Self:
         if len(exercise_sets) != len(self.exercises):
             raise ValueError(
                 f'Expected {len(self.exercises)} sets (one for each exercise), got {len(exercise_sets)}.'
@@ -175,27 +173,34 @@ class ExerciseGroup(WorkoutComponent):
             self.exercise_sets_dict[exercise].append(working_set)
         return self
 
-    def add_gs(self, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
+    def add_gs(self, exercise_sets: dict[Exercise_t, WorkingSet_t]) -> Self:
         return self.add_group_sets(exercise_sets)
 
     def add_repeating_group_sets(
-        self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]
+        self, n_repeats: int, exercise_sets: dict[Exercise_t, WorkingSet_t]
     ) -> Self:
         for _ in range(n_repeats):
             self.add_group_sets(deepcopy(exercise_sets))
         return self
 
-    def add_rgs(self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
+    def add_rgs(self, n_repeats: int, exercise_sets: dict[Exercise_t, WorkingSet_t]) -> Self:
         return self.add_repeating_group_sets(n_repeats, exercise_sets)
 
     def compute_values(
-        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+        self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
     ) -> None:
         for exercise, sets in self.exercise_sets_dict.items():
             if exercise not in best_exercise_values:
                 continue
             for working_set in sets:
                 working_set.compute_values(best_exercise_values[exercise], compute_config)
+
+    # @field_serializer('exercise_sets_dict')
+    # def serialize_exercise_sets_dict(self, v: dict[Exercise, list[WorkingSet]], _info):
+    #     return {key.name: [ws.model_dump() for ws in set_list] for key, (set_list) in v.items()}
+
+
+WorkoutComponent_t = SingleExercise | ExerciseGroup
 
 
 if __name__ == '__main__':

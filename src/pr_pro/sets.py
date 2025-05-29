@@ -139,3 +139,6 @@ class PowerExerciseSet(RepsSet):
 
 class DurationSet(WorkingSet):
     duration: time
+
+
+WorkingSet_t = RepsSet | RepsRPESet | RepsAndWeightsSet | PowerExerciseSet | DurationSet
