@@ -61,6 +61,6 @@ class Program(BaseModel):
         self.workout_sessions.append(workout_session)
         return self
 
-    def add_best_exercise(self, exercise: Exercise, value: float) -> Self:
+    def add_best_exercise_value(self, exercise: Exercise, value: float) -> Self:
         self.best_exercise_values[exercise] = value
         return self

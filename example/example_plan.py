@@ -20,11 +20,11 @@ def main():
 
     program = (
         Program(name='Test program')
-        .add_best_exercise(backsquat, 55)
-        .add_best_exercise(deadlift, 90)
-        .add_best_exercise(bench_press, 50)
+        .add_best_exercise_value(backsquat, 55)
+        .add_best_exercise_value(deadlift, 90)
+        .add_best_exercise_value(bench_press, 50)
     )
-    program.add_best_exercise(pendlay_row, program.best_exercise_values[deadlift] * 0.6)
+    program.add_best_exercise_value(pendlay_row, program.best_exercise_values[deadlift] * 0.6)
 
     w1d1 = (
         WorkoutSession(id='W1D1', notes='Power day.')

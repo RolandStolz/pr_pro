@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
+from copy import copy
 from typing import Any, Self, Sequence
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
@@ -21,7 +22,7 @@ class WorkoutComponent(BaseModel):
 
     def add_repeating_set(self, n_repeats: int, working_set: WorkingSet) -> Self:
         for _ in range(n_repeats):
-            self.add_set(working_set)
+            self.add_set(working_set.model_copy())
         return self
 
     def add_rs(self, n_repeats: int, working_set: WorkingSet) -> Self:
@@ -44,7 +45,9 @@ class SingleExercise(WorkoutComponent):
         if 'sets' in kwargs:
             n_sets = len(component.sets)
             assert n_sets > 0
-            new_component.sets = [component.sets[0]] * (kwargs['sets'] + n_sets)
+            new_component.sets = []
+            new_component.add_repeating_set(kwargs['sets'] + n_sets, component.sets[0])
+            # new_component.sets = [component.sets[0]] * (kwargs['sets'] + n_sets)
             del kwargs['sets']
 
         for key, value in kwargs.items():
@@ -137,7 +140,7 @@ class ExerciseGroup(WorkoutComponent):
             + notes_str
             + line_start
             + line_start.join(
-                ' + '.join(self.exercise_sets_dict[e][i].__str__() for e in self.exercises)
+                ' | '.join(self.exercise_sets_dict[e][i].__str__() for e in self.exercises)
                 for i in range(n_sets)
             )
         )
@@ -162,7 +165,7 @@ class ExerciseGroup(WorkoutComponent):
         self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]
     ) -> Self:
         for _ in range(n_repeats):
-            self.add_group_sets(exercise_sets)
+            self.add_group_sets(copy(exercise_sets))
         return self
 
     def add_rgs(self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
