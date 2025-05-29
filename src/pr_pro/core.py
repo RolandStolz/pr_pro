@@ -2,6 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel
 
+from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import Exercise
 from pr_pro.workout_component import SingleExercise, WorkoutComponent
 
@@ -35,6 +36,12 @@ class WorkoutSession(BaseModel):
     def add_se(self, exercise: Exercise) -> Self:
         return self.add_single_exercise(exercise)
 
+    def compute_session(
+        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+    ) -> None:
+        for component in self.workout_components:
+            component.compute_values(best_exercise_values, compute_config)
+
 
 class Program(BaseModel):
     name: str
@@ -64,3 +71,7 @@ class Program(BaseModel):
     def add_best_exercise_value(self, exercise: Exercise, value: float) -> Self:
         self.best_exercise_values[exercise] = value
         return self
+
+    def compute_program(self, compute_config: ComputeConfig) -> None:
+        for session in self.workout_sessions:
+            session.compute_session(self.best_exercise_values, compute_config)

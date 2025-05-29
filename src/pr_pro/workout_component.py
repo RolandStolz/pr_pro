@@ -1,12 +1,16 @@
 from __future__ import annotations
 from abc import abstractmethod
 from copy import copy
+import logging
 from typing import Any, Self, Sequence
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
+from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import Exercise, RepsAndWeightsExercise
 from pr_pro.sets import WorkingSet
+
+logger = logging.getLogger(__name__)
 
 
 class WorkoutComponent(BaseModel):
@@ -27,6 +31,11 @@ class WorkoutComponent(BaseModel):
 
     def add_rs(self, n_repeats: int, working_set: WorkingSet) -> Self:
         return self.add_repeating_set(n_repeats, working_set)
+
+    @abstractmethod
+    def compute_values(
+        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+    ) -> None: ...
 
 
 class SingleExercise(WorkoutComponent):
@@ -71,6 +80,14 @@ class SingleExercise(WorkoutComponent):
     def add_set(self, working_set: WorkingSet) -> Self:
         self.sets.append(working_set)
         return self
+
+    def compute_values(
+        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+    ) -> None:
+        if self.exercise not in best_exercise_values:
+            return None
+        for working_set in self.sets:
+            working_set.compute_values(best_exercise_values[self.exercise], compute_config)
 
 
 class ExerciseGroup(WorkoutComponent):
@@ -170,6 +187,15 @@ class ExerciseGroup(WorkoutComponent):
 
     def add_rgs(self, n_repeats: int, exercise_sets: dict[Exercise, WorkingSet]) -> Self:
         return self.add_repeating_group_sets(n_repeats, exercise_sets)
+
+    def compute_values(
+        self, best_exercise_values: dict[Exercise, float], compute_config: ComputeConfig
+    ) -> None:
+        for exercise, sets in self.exercise_sets_dict.items():
+            if exercise not in best_exercise_values:
+                continue
+            for working_set in sets:
+                working_set.compute_values(best_exercise_values[exercise], compute_config)
 
 
 if __name__ == '__main__':

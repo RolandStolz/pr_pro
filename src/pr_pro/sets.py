@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, model_validator
-
+import logging
 from datetime import time
+
+from pydantic import BaseModel, Field, model_validator
+from pr_pro.configs import ComputeConfig
+
+logger = logging.getLogger(__name__)
 
 
 class WorkingSet(BaseModel):
@@ -12,6 +16,10 @@ class WorkingSet(BaseModel):
         return ', '.join(
             [f'{a} {value}' for a, value in self.model_dump().items() if value is not None]
         )
+
+    def compute_values(self, best_exercise_value: float, compute_config: ComputeConfig) -> None:
+        # A lot of set types cannot compute values, hence they don't have to redefine the method
+        pass
 
 
 class RepsSet(WorkingSet):
@@ -38,8 +46,58 @@ class RepsAndWeightsSet(RepsSet):
             )
         return data
 
+    def compute_values(self, best_exercise_value: float, compute_config: ComputeConfig) -> None:
+        tol = 1e-6
 
-class OlyWeightLiftingSet(RepsSet):
+        if self.weight is not None:
+            if self.percentage is None:
+                self.percentage = self.weight / best_exercise_value
+            else:
+                assert self.percentage - best_exercise_value / self.weight < tol, (
+                    f'Missmatch between provided percentage {self.percentage} and '
+                    f'weight {self.weight} and best exercise value {best_exercise_value}.'
+                )
+
+        if self.percentage is not None:
+            if self.weight is None:
+                self.weight = best_exercise_value * self.percentage
+            else:
+                assert self.weight - best_exercise_value * self.percentage < tol, (
+                    f'Missmatch between provided weight {self.weight} and '
+                    f'percentage {self.percentage} and best exercise value {best_exercise_value}.'
+                )
+
+        if self.relative_percentage is not None:
+            weight = (
+                self.relative_percentage
+                * compute_config.one_rm_calculator.max_weight_from_reps(
+                    best_exercise_value, self.reps
+                )
+            )
+            percentage = weight / best_exercise_value
+
+            assert (
+                self.weight is None or self.weight - weight < tol
+            ), f'Missmatch between provided weight {self.weight} and computed weight {weight}.'
+            assert (
+                self.percentage is None or self.percentage - percentage < tol
+            ), f'Missmatch between provided percentage {self.percentage} and computed percentage {percentage}.'
+            self.weight = weight
+            self.percentage = percentage
+        else:
+            self.relative_percentage = (
+                compute_config.one_rm_calculator.max_weight_from_reps(
+                    best_exercise_value, self.reps
+                )
+                / best_exercise_value
+            )
+
+        assert self.weight is not None
+        assert self.percentage is not None
+        assert self.relative_percentage is not None
+
+
+class PowerExerciseSet(RepsSet):
     weight: float | None = Field(default=None, ge=0)
     percentage: float | None = Field(default=None, ge=0)
 
@@ -49,6 +107,30 @@ class OlyWeightLiftingSet(RepsSet):
         if not any(data.get(field) is not None for field in ['weight', 'percentage']):
             raise ValueError('At least one of weight, or percentage must be provided.')
         return data
+
+    def compute_values(self, best_exercise_value: float, compute_config: ComputeConfig) -> None:
+        tol = 1e-6
+
+        if self.weight is not None:
+            if self.percentage is None:
+                self.percentage = self.weight / best_exercise_value
+            else:
+                assert self.percentage - best_exercise_value / self.weight < tol, (
+                    f'Missmatch between provided percentage {self.percentage} and '
+                    f'weight {self.weight} and best exercise value {best_exercise_value}.'
+                )
+
+        if self.percentage is not None:
+            if self.weight is None:
+                self.weight = best_exercise_value * self.percentage
+            else:
+                assert self.weight - best_exercise_value * self.percentage < tol, (
+                    f'Missmatch between provided weight {self.weight} and '
+                    f'percentage {self.percentage} and best exercise value {best_exercise_value}.'
+                )
+
+        assert self.weight is not None
+        assert self.percentage is not None
 
 
 class DurationSet(WorkingSet):

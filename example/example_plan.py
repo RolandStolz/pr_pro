@@ -1,4 +1,5 @@
 from datetime import time
+from pr_pro.configs import ComputeConfig
 from pr_pro.core import Program, WorkoutSession
 from pr_pro.exercise import DurationExercise, RepsExercise
 from pr_pro.exercises.common import backsquat, deadlift, bench_press, split_squat, pullup, pushup
@@ -130,6 +131,7 @@ def main():
     )
     program.add_workout_session(w1d3)
 
+    program.compute_program(compute_config=ComputeConfig())
     print(program)
 
 

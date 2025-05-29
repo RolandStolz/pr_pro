@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from pr_pro.sets import (
     DurationSet,
-    OlyWeightLiftingSet,
+    PowerExerciseSet,
     RepsAndWeightsSet,
     RepsRPESet,
     RepsSet,
@@ -74,16 +74,16 @@ class RepsAndWeightsExercise(RepsExercise):
         def __hash__(self) -> int: ...
 
 
-class OlyWeightLiftingExercise(RepsExercise):
-    set_class = OlyWeightLiftingSet
+class PowerExercise(RepsExercise):
+    set_class = PowerExerciseSet
 
     @staticmethod
     def create_set(
         reps: int,
         weight: float | None = None,
         percentage: float | None = None,
-    ) -> OlyWeightLiftingSet:
-        return OlyWeightLiftingSet(
+    ) -> PowerExerciseSet:
+        return PowerExerciseSet(
             reps=reps,
             weight=weight,
             percentage=percentage,
