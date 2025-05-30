@@ -96,7 +96,10 @@ class ExerciseGroup(WorkoutComponent):
         if len(self.exercises) != len(set(self.exercises)):
             raise ValueError('Exercises must be unique in the group.')
 
-        self.exercise_sets_dict = {e: [] for e in self.exercises}
+        if len(self.exercises) > 0:
+            # Only create the empty lists, if the exercise key's don't exist yet (e.g., after model validation)
+            if self.exercises[0] not in self.exercise_sets_dict:
+                self.exercise_sets_dict = {e: [] for e in self.exercises}
 
     @staticmethod
     def from_prev_component(component: ExerciseGroup, **kwargs) -> ExerciseGroup:
