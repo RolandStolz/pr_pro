@@ -1,10 +1,9 @@
 from abc import abstractmethod, ABC
 from datetime import time
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
-from pr_pro.exercises.registry import get_exercise_by_key_string
 from pr_pro.sets import (
     DurationSet,
     PowerExerciseSet,
@@ -19,6 +18,8 @@ from pr_pro.sets import (
 class Exercise(BaseModel, ABC):
     set_class: ClassVar[type[WorkingSet_t]]
     name: str
+    # Necessary for discerning exercises in model validation
+    model_type: Literal['Exercise'] = 'Exercise'
     model_config = ConfigDict(frozen=True)
 
     @staticmethod
@@ -32,23 +33,16 @@ class Exercise(BaseModel, ABC):
     @classmethod
     def _validate_from_key_string_or_dict(cls, data: Any, info: ValidationInfo) -> Any:
         if isinstance(data, str):
-            return get_exercise_by_key_string(data).model_dump()
+            exercise_class = get_exercise_type_by_key_string(data)
+            name = data.split('(')[0].strip()
+            return exercise_class(name=name).model_dump()
 
         return data
-
-    def register(self) -> Self:
-        """
-        Registers the exercise in the registry.
-        Calling the method is only necessary, if you intent to load a program from a file.
-        """
-        from pr_pro.exercises.registry import register_exercise
-
-        register_exercise(self)
-        return self
 
 
 class RepsExercise(Exercise):
     set_class = RepsSet
+    model_type: Literal['RepsExercise'] = 'RepsExercise'
 
     @staticmethod
     def create_set(reps: int) -> RepsSet:
@@ -61,6 +55,7 @@ class RepsExercise(Exercise):
 
 class RepsRPEExercise(RepsExercise):
     set_class = RepsRPESet
+    model_type: Literal['RepsRPEExercise'] = 'RepsRPEExercise'
 
     @staticmethod
     def create_set(reps: int, rpe: int) -> RepsSet:
@@ -73,6 +68,7 @@ class RepsRPEExercise(RepsExercise):
 
 class RepsAndWeightsExercise(RepsExercise):
     set_class = RepsAndWeightsSet
+    model_type: Literal['RepsAndWeightsExercise'] = 'RepsAndWeightsExercise'
 
     @staticmethod
     def create_set(
@@ -95,6 +91,7 @@ class RepsAndWeightsExercise(RepsExercise):
 
 class PowerExercise(RepsExercise):
     set_class = PowerExerciseSet
+    model_type: Literal['PowerExercise'] = 'PowerExercise'
 
     @staticmethod
     def create_set(
@@ -115,6 +112,7 @@ class PowerExercise(RepsExercise):
 
 class DurationExercise(Exercise):
     set_class = DurationSet
+    model_type: Literal['DurationExercise'] = 'DurationExercise'
 
     @staticmethod
     def create_set(duration: time) -> DurationSet:
@@ -125,9 +123,25 @@ class DurationExercise(Exercise):
         def __hash__(self) -> int: ...
 
 
+# The type union is required for correct pydantic model validation
 Exercise_t = (
     RepsExercise | RepsRPEExercise | RepsAndWeightsExercise | PowerExercise | DurationExercise
 )
+
+
+def get_exercise_type_by_key_string(key: str) -> type[Exercise]:
+    type_name = key.split('(')[-1].split(')')[0]
+    type_dict = {
+        'RepsExercise': RepsExercise,
+        'RepsRPEExercise': RepsRPEExercise,
+        'RepsAndWeightsExercise': RepsAndWeightsExercise,
+        'PowerExercise': PowerExercise,
+        'DurationExercise': DurationExercise,
+    }
+    if type_name not in type_dict:
+        raise ValueError(f'Unknown exercise type: {type_name}')
+    return type_dict[type_name]
+
 
 if __name__ == '__main__':
     test = PowerExercise(name='test')

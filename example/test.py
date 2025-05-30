@@ -8,7 +8,7 @@ from pr_pro.workout_component import SingleExercise, ExerciseGroup
 
 
 def main():
-    pendlay_row = RepsAndWeightsExercise(name='Pendlay row').register()
+    pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
 
     program = Program(name='Test program').add_best_exercise_value(backsquat, 100)
     program.add_best_exercise_value(pendlay_row, program.best_exercise_values[backsquat] * 0.6)
@@ -43,6 +43,8 @@ def main():
 
     loaded = Program.from_json_file(Path('test.json'))
     print(loaded)
+    print(program.best_exercise_values.items())
+    print(loaded.best_exercise_values.items())
 
 
 if __name__ == '__main__':
