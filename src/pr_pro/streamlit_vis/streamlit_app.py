@@ -37,7 +37,9 @@ def run_streamlit_app(program: Program):
         st.error('Selected session not found.')
 
     st.divider()
-    with st.expander('Session comparison'):
+
+    st.checkbox('Show session comparison', value=False, key='show_comparison')
+    if st.session_state.get('show_comparison', False):
         sessino_ids_remaining = [
             session_id for session_id in session_ids if session_id != selected_session_id
         ]
