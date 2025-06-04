@@ -1,6 +1,6 @@
 from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import Exercise_t
-from pr_pro.workout_component import SingleExercise, WorkoutComponent_t
+from pr_pro.workout_component import ExerciseGroup, SingleExercise, WorkoutComponent_t
 
 
 from pydantic import BaseModel
@@ -27,6 +27,18 @@ class WorkoutSession(BaseModel):
         self.workout_components.append(workout_component)
         return self
 
+    def get_component_by_exercise(self, exercise: Exercise_t) -> SingleExercise | None:
+        for component in self.workout_components:
+            if isinstance(component, SingleExercise) and component.exercise == exercise:
+                return component
+        return None
+
+    def get_component_by_exercise_group(self, exercises: list[Exercise_t]) -> ExerciseGroup | None:
+        for component in self.workout_components:
+            if isinstance(component, ExerciseGroup) and set(component.exercises) == set(exercises):
+                return component
+        return None
+
     def add_co(self, workout_component: WorkoutComponent_t) -> Self:
         return self.add_component(workout_component)
 
@@ -43,3 +55,29 @@ class WorkoutSession(BaseModel):
     ) -> None:
         for component in self.workout_components:
             component.compute_values(best_exercise_values, compute_config)
+
+
+def single_exercise_from_prev_session(
+    previous_session: WorkoutSession, exercise: Exercise_t, **kwargs
+) -> SingleExercise:
+    """
+    Create a SingleExercise component based on a previous session's component.
+    """
+    prev_component = previous_session.get_component_by_exercise(exercise)
+    if not prev_component:
+        raise ValueError(f'No previous component found for exercise {exercise.name}.')
+    return SingleExercise.from_prev_component(prev_component, **kwargs)
+
+
+def exercise_group_from_prev_session(
+    previous_session: WorkoutSession, exercises: list[Exercise_t], **kwargs
+) -> ExerciseGroup:
+    """
+    Create an ExerciseGroup component based on a previous session's component.
+    """
+    prev_component = previous_session.get_component_by_exercise_group(exercises)
+    if not prev_component:
+        raise ValueError(
+            f'No previous component found for exercises {", ".join(e.name for e in exercises)}.'
+        )
+    return ExerciseGroup.from_prev_component(prev_component, **kwargs)

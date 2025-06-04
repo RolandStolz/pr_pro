@@ -58,7 +58,7 @@ class RepsAndWeightsSet(RepsSet):
             if self.percentage is None:
                 self.percentage = self.weight / best_exercise_value
             else:
-                assert self.percentage - best_exercise_value / self.weight < tol, (
+                assert self.percentage - self.weight / best_exercise_value < tol, (
                     f'Missmatch between provided percentage {self.percentage} and '
                     f'weight {self.weight} and best exercise value {best_exercise_value}.'
                 )

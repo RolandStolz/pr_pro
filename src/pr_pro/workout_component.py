@@ -24,6 +24,10 @@ class WorkoutComponent(BaseModel):
     @abstractmethod
     def add_set(self, working_set: WorkingSet_t) -> Self: ...
 
+    def set_notes(self, notes: str) -> Self:
+        self.notes = notes
+        return self
+
     def add_repeating_set(self, n_repeats: int, working_set: WorkingSet_t) -> Self:
         for _ in range(n_repeats):
             self.add_set(working_set.model_copy())
@@ -120,8 +124,9 @@ class ExerciseGroup(WorkoutComponent):
             assert len(value) == len(component.exercises)
 
             for i, e in enumerate(component.exercises):
-                w_set = new_component.exercise_sets_dict[e][0]
-                w_set.__setattr__(key, w_set.__getattribute__(key) + value[i])
+                if value[i] is not None:
+                    w_set = new_component.exercise_sets_dict[e][0]
+                    w_set.__setattr__(key, w_set.__getattribute__(key) + value[i])
 
         return new_component
 
