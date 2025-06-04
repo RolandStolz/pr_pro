@@ -7,7 +7,7 @@ from pr_pro.workout_session import WorkoutSession
 import streamlit as st
 
 
-def render_session(session: WorkoutSession):
+def render_session(session: WorkoutSession, use_persistent_state: bool):
     st.subheader(f'Session: {session.id}')
     if session.notes:
         st.markdown(f'> _{session.notes}_')
@@ -27,9 +27,13 @@ def render_session(session: WorkoutSession):
         for i, component in enumerate(session.workout_components):
             with tabs[i]:
                 if isinstance(component, SingleExercise):  #
-                    render_single_exercise_component_ui(component, session=session)
+                    render_single_exercise_component_ui(
+                        component, session=session, use_persistent_state=use_persistent_state
+                    )
                 elif isinstance(component, ExerciseGroup):  #
-                    render_exercise_group_component_ui(component, session=session)
+                    render_exercise_group_component_ui(
+                        component, session=session, use_persistent_state=use_persistent_state
+                    )
                 else:
                     st.warning(f'Unknown component type: {type(component)}')
     else:

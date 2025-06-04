@@ -4,10 +4,14 @@ from pr_pro.configs import ComputeConfig
 from pr_pro.example import get_example_program
 from pr_pro.program import Program
 from pr_pro.streamlit_vis.session import render_session
+from pr_pro.streamlit_vis.state import load_persisted_state_from_file
 
 
-def run_streamlit_app(program: Program):
+def run_streamlit_app(program: Program, use_persistent_state: bool = False):
     st.set_page_config(layout='wide', page_title='PR-Pro Visualizer')
+
+    if use_persistent_state:
+        load_persisted_state_from_file()
 
     st.title(program.name)
 
@@ -32,7 +36,7 @@ def run_streamlit_app(program: Program):
     )
 
     if selected_session:
-        render_session(selected_session)
+        render_session(selected_session, use_persistent_state=use_persistent_state)
     else:
         st.error('Selected session not found.')
 
@@ -50,10 +54,16 @@ def run_streamlit_app(program: Program):
             (s for s in program.workout_sessions if s.id == selected_session_comparison_id), None
         )
         if selected_session_comparison:
-            render_session(selected_session_comparison)
+            render_session(selected_session_comparison, use_persistent_state)
+
+
+@st.cache_data
+def load_program_data():
+    program = get_example_program()
+    program.compute_values(compute_config=ComputeConfig())
+    return program
 
 
 if __name__ == '__main__':
-    program = get_example_program()
-    program.compute_values(compute_config=ComputeConfig())
-    run_streamlit_app(program)
+    program = load_program_data()
+    run_streamlit_app(program, use_persistent_state=True)

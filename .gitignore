@@ -175,3 +175,5 @@ cython_debug/
 
 .vscode
 test.json
+
+app_state.json
