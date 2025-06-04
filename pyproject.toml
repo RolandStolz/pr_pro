@@ -12,8 +12,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-plots = [
+vis = [
     "matplotlib>=3.10.3",
+    "streamlit>=1.45.1",
+    "watchdog>=6.0.0",
 ]
 
 [project.scripts]
