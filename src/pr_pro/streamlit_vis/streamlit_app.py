@@ -6,10 +6,10 @@ from pr_pro.program import Program
 from pr_pro.streamlit_vis.session import render_session
 from pr_pro.streamlit_vis.state import load_persisted_state_from_file
 
+st.set_page_config(layout='wide', page_title='PR-Pro Visualizer')
+
 
 def run_streamlit_app(program: Program, use_persistent_state: bool = False):
-    st.set_page_config(layout='wide', page_title='PR-Pro Visualizer')
-
     if use_persistent_state:
         load_persisted_state_from_file()
 
