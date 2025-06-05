@@ -1,9 +1,11 @@
-from pr_pro.exercise import RepsExercise
+from pr_pro.exercise import PowerExercise, RepsExercise
 from pr_pro.exercise import RepsAndWeightsExercise
 
 
 pullup = RepsExercise(name='Pullup')
 pushup = RepsExercise(name='Pushup')
+
+power_clean = PowerExercise(name='Power Clean')
 
 backsquat = RepsAndWeightsExercise(name='Backsquat')
 deadlift = RepsAndWeightsExercise(name='Deadlift')

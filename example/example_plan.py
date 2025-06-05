@@ -1,4 +1,4 @@
-from datetime import time
+import datetime
 from pr_pro.workout_session import WorkoutSession
 from pr_pro.configs import ComputeConfig
 from pr_pro.program import Program
@@ -100,7 +100,7 @@ def main():
         WorkoutSession(id='W1D3')
         .add_component(
             SingleExercise(exercise=squat_hold).add_repeating_set(
-                3, squat_hold.create_set(duration=time(minute=1))
+                3, squat_hold.create_set(duration=datetime.timedelta(minutes=1))
             )
         )
         .add_component(
