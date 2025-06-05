@@ -54,7 +54,7 @@ class SingleExercise(WorkoutComponent):
 
     @staticmethod
     def from_prev_component(component: SingleExercise, **kwargs) -> SingleExercise:
-        new_component = component.model_copy()
+        new_component = component.model_copy(deep=True)
         if 'sets' in kwargs:
             n_sets = len(component.sets)
             assert n_sets > 0
@@ -63,8 +63,8 @@ class SingleExercise(WorkoutComponent):
             del kwargs['sets']
 
         for key, value in kwargs.items():
-            w_set = new_component.sets[0]
-            w_set.__setattr__(key, w_set.__getattribute__(key) + value)
+            for w_set in new_component.sets:
+                w_set.__setattr__(key, w_set.__getattribute__(key) + value)
 
         return new_component
 
@@ -107,7 +107,7 @@ class ExerciseGroup(WorkoutComponent):
 
     @staticmethod
     def from_prev_component(component: ExerciseGroup, **kwargs) -> ExerciseGroup:
-        new_component = component.model_copy()
+        new_component = component.model_copy(deep=True)
 
         if 'sets' in kwargs:
             n_sets = len(component.exercise_sets_dict[component.exercises[0]])
@@ -119,14 +119,13 @@ class ExerciseGroup(WorkoutComponent):
             del kwargs['sets']
 
         for key, value in kwargs.items():
-            # for w_set in new_component.sets:
             assert isinstance(value, Sequence)
             assert len(value) == len(component.exercises)
 
             for i, e in enumerate(component.exercises):
                 if value[i] is not None:
-                    w_set = new_component.exercise_sets_dict[e][0]
-                    w_set.__setattr__(key, w_set.__getattribute__(key) + value[i])
+                    for w_set in new_component.exercise_sets_dict[e]:
+                        w_set.__setattr__(key, w_set.__getattribute__(key) + value[i])
 
         return new_component
 
@@ -203,10 +202,6 @@ class ExerciseGroup(WorkoutComponent):
             for working_set in sets:
                 working_set.compute_values(best_exercise_values[exercise], compute_config)
 
-    # @field_serializer('exercise_sets_dict')
-    # def serialize_exercise_sets_dict(self, v: dict[Exercise, list[WorkingSet]], _info):
-    #     return {key.name: [ws.model_dump() for ws in set_list] for key, (set_list) in v.items()}
-
 
 WorkoutComponent_t = SingleExercise | ExerciseGroup
 
@@ -220,7 +215,9 @@ if __name__ == '__main__':
     co.add_repeating_set(3, squat.create_set(10, 80))
 
     co2 = SingleExercise.from_prev_component(co, sets=+1, reps=-2, weight=+10)
+    print(co)
     print(co2)
+    print()
 
     gco = ExerciseGroup(exercises=[bench_press, row]).add_repeating_group_sets(
         4,
@@ -231,4 +228,5 @@ if __name__ == '__main__':
     )
 
     gco2 = ExerciseGroup.from_prev_component(gco, reps=(+2, +2))
+    print(gco)
     print(gco2)

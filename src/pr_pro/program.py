@@ -12,7 +12,8 @@ from pr_pro.exercise import Exercise, Exercise_t
 class Program(BaseModel):
     name: str
     best_exercise_values: dict[Exercise_t, float] = {}
-    workout_sessions: list[WorkoutSession] = []
+    workout_session_dict: dict[str, WorkoutSession] = {}
+    program_phases: dict[str, list[str]] = {}
 
     def __str__(self) -> str:
         workout_str = f'--- Workout {self.name} ---\n'
@@ -22,30 +23,42 @@ class Program(BaseModel):
             + '\n\n'
         )
         workout_sessions_str = (
-            'Workout sessions\n' + '\n'.join(ws.__str__() for ws in self.workout_sessions) + '\n'
+            'Workout sessions\n'
+            + '\n'.join(ws.__str__() for ws in self.workout_session_dict.values())
+            + '\n'
         )
         return workout_str + best_exercise_str + workout_sessions_str
 
     def add_workout_session(self, workout_session: WorkoutSession) -> Self:
-        if workout_session.id in [ws.id for ws in self.workout_sessions]:
+        if workout_session.id in self.workout_session_dict:
             raise ValueError(
-                f'Workout session id must be unique. {workout_session.id} already exists.'
+                f'Workout session with id {workout_session.id} already exists in the program.'
             )
-        self.workout_sessions.append(workout_session)
+        self.workout_session_dict[workout_session.id] = workout_session
         return self
+
+    def add_program_phase(self, phase_id: str, session_ids: list[str]) -> Self:
+        if phase_id in self.program_phases:
+            raise ValueError(f'Program phase with id {phase_id} already exists.')
+        if not all(session_id in self.workout_session_dict for session_id in session_ids):
+            raise ValueError('One or more session IDs do not exist in the program.')
+        self.program_phases[phase_id] = session_ids
+        return self
+
+    def get_workout_session_by_id(self, session_id: str) -> WorkoutSession | None:
+        return self.workout_session_dict.get(session_id, None)
 
     def add_best_exercise_value(self, exercise: Exercise_t, value: float) -> Self:
         self.best_exercise_values[exercise] = value
         return self
 
     def compute_values(self, compute_config: ComputeConfig) -> None:
-        for session in self.workout_sessions:
+        for session in self.workout_session_dict.values():
             session.compute_values(self.best_exercise_values, compute_config)
 
     @field_serializer('best_exercise_values')
     def serialize_best_exercise_values(self, v: dict[Exercise, float], _info) -> dict[str, float]:
         return {key.__str__(): value for key, value in v.items()}
-        # return {key.model_dump_json(): value for key, value in v.items()}
 
     def write_json_file(self, file_path: Path) -> None:
         with open(file_path, 'w') as f:
