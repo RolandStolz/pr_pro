@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from datetime import time
+import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
@@ -115,7 +115,7 @@ class DurationExercise(Exercise):
     model_type: Literal['DurationExercise'] = 'DurationExercise'
 
     @staticmethod
-    def create_set(duration: time) -> DurationSet:
+    def create_set(duration: datetime.timedelta) -> DurationSet:
         return DurationSet(duration=duration)
 
     if TYPE_CHECKING:

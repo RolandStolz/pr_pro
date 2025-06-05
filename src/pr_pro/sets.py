@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import datetime
 import logging
-from datetime import time
 
 from pydantic import BaseModel, Field, model_validator
 from pr_pro.configs import ComputeConfig
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkingSet(BaseModel):
-    rest_between: time | None = None
+    rest_between: datetime.timedelta | None = None
 
     def __str__(self) -> str:
         formatted_items = []
@@ -138,7 +138,7 @@ class PowerExerciseSet(RepsSet):
 
 
 class DurationSet(WorkingSet):
-    duration: time
+    duration: datetime.timedelta
 
 
 WorkingSet_t = RepsSet | RepsRPESet | RepsAndWeightsSet | PowerExerciseSet | DurationSet
