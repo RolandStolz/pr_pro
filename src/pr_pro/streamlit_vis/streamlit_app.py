@@ -22,7 +22,7 @@ def run_streamlit_app(program: Program, use_persistent_state: bool = False):
         if program.best_exercise_values:
             st.title('Max values')
             for exercise, value in program.best_exercise_values.items():
-                st.markdown(f'**{exercise.name}**: {value:.1f} kg')
+                st.markdown(f'**{exercise.name}**: {round(value, 1)} kg')
 
     # Sessions
     if not program.program_phases:
