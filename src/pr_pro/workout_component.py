@@ -138,6 +138,21 @@ class ExerciseGroup(WorkoutComponent):
                 )
         return self
 
+    def add_exercise(self, exercise: Exercise_t) -> Self:
+        if exercise in self.exercises:
+            raise ValueError(f'Exercise {exercise.name} is already part of this group.')
+        self.exercises.append(exercise)
+        self.exercise_sets_dict[exercise] = []
+        return self
+
+    def remove_exercise(self, exercise: Exercise_t) -> Self:
+        if exercise not in self.exercises:
+            raise ValueError(f'Exercise {exercise.name} is not part of this group.')
+
+        self.exercises.remove(exercise)
+        del self.exercise_sets_dict[exercise]
+        return self
+
     def add_set(self, working_set: WorkingSet_t, *, exercise: Exercise_t) -> Self:
         if exercise not in self.exercises:
             raise ValueError(f'Exercise {exercise.name} is not part of this group.')
