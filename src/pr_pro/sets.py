@@ -137,6 +137,10 @@ class PowerExerciseSet(RepsSet):
         assert self.percentage is not None
 
 
+class RepsDistanceSet(RepsSet):
+    distance: float
+
+
 class DurationSet(WorkingSet):
     duration: datetime.timedelta
 

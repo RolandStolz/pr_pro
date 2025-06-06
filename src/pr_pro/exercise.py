@@ -8,6 +8,7 @@ from pr_pro.sets import (
     DurationSet,
     PowerExerciseSet,
     RepsAndWeightsSet,
+    RepsDistanceSet,
     RepsRPESet,
     RepsSet,
     WorkingSet,
@@ -108,6 +109,15 @@ class PowerExercise(RepsExercise):
     if TYPE_CHECKING:
 
         def __hash__(self) -> int: ...
+
+
+class RepsDistanceExercise(RepsExercise):
+    set_class = RepsDistanceSet
+    model_type: Literal['RepsDistanceExercise'] = 'RepsDistanceExercise'
+
+    @staticmethod
+    def create_set(reps: int, distance: float) -> RepsDistanceSet:
+        return RepsDistanceSet(reps=reps, distance=distance)
 
 
 class DurationExercise(Exercise):
