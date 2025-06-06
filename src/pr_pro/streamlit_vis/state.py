@@ -65,7 +65,7 @@ def save_persisted_state_to_file():
         st.error(f'Error saving state to {DATA_FILE}: {e}')
 
 
-def register_key_for_persistence(key: str, default_value=False):
+def register_key_for_persistence(key: str, default_value: bool | str = False):
     """
     Registers a key from st.session_state to be persisted.
     Also initializes it in st.session_state if it's not already present (e.g., from file load).
