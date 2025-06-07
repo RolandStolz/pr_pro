@@ -50,6 +50,24 @@ class WorkoutSession(BaseModel):
     def add_se(self, exercise: Exercise_t) -> Self:
         return self.add_single_exercise(exercise)
 
+    def get_number_of_exercises(self) -> int:
+        n_exercises = 0
+        for component in self.workout_components:
+            if isinstance(component, SingleExercise):
+                n_exercises += 1
+            elif isinstance(component, ExerciseGroup):
+                n_exercises += len(component.exercises)
+        return n_exercises
+    
+    def get_number_of_sets(self) -> int:
+        n_sets = 0
+        for component in self.workout_components:
+            if isinstance(component, SingleExercise):
+                n_sets += len(component.sets)
+            elif isinstance(component, ExerciseGroup):
+                n_sets += sum(len(s) for s in component.exercise_sets_dict.values())
+        return n_sets
+
     def compute_values(
         self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
     ) -> None:
