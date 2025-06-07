@@ -7,21 +7,22 @@ from pr_pro.workout_session import WorkoutSession
 
 
 def _add_comment(component_key: str, use_persistent_state: bool):
+    if use_persistent_state:
+        register_key_for_persistence(component_key, default_value='')
+
     st.text_input(
         'Comment',
         key=component_key,
         on_change=save_persisted_state_to_file if use_persistent_state else None,
     )
 
-    if use_persistent_state:
-        register_key_for_persistence(component_key, default_value='')
 
 
 def render_single_exercise_component_ui(
     component: SingleExercise, session: WorkoutSession, use_persistent_state: bool
 ):
     if component.notes:
-        st.caption(f'**Notes**: *{component.notes}*')
+        st.markdown(f'**Notes**: *{component.notes}*')
 
     component_key = f'{session.id}_{component.exercise.name}_comment'
     _add_comment(component_key, use_persistent_state)

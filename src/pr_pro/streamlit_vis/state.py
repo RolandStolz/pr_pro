@@ -37,7 +37,8 @@ def load_persisted_state_from_file():
 
     for key in list(st.session_state[_PERSISTED_SESSION_STATE_KEYS]):
         if key not in st.session_state:
-            st.session_state[key] = False
+            value = '' if key.endswith('_comment') else False
+            st.session_state[key] = value
 
 
 def save_persisted_state_to_file():
