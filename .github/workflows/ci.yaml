@@ -47,6 +47,7 @@ jobs:
       - name: Run pytest
         run: |
           python -m pytest tests --cov --cov-report json
+          coverage report
 
       - name:
           Update Coverage Badge
