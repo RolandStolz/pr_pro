@@ -11,7 +11,7 @@ def render_session(session: WorkoutSession, use_persistent_state: bool):
     st.subheader(f'Session: {session.id}')
     if session.notes:
         st.markdown(f'> _{session.notes}_')
-    
+
     with st.expander('Session stats'):
         st.markdown(f'Exercises: {session.get_number_of_exercises()}')
         st.markdown(f'Sets: {session.get_number_of_sets()}')

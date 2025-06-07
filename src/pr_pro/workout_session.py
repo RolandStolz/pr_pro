@@ -58,7 +58,7 @@ class WorkoutSession(BaseModel):
             elif isinstance(component, ExerciseGroup):
                 n_exercises += len(component.exercises)
         return n_exercises
-    
+
     def get_number_of_sets(self) -> int:
         n_sets = 0
         for component in self.workout_components:

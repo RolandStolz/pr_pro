@@ -17,7 +17,6 @@ def _add_comment(component_key: str, use_persistent_state: bool):
     )
 
 
-
 def render_single_exercise_component_ui(
     component: SingleExercise, session: WorkoutSession, use_persistent_state: bool
 ):
