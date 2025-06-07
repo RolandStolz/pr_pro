@@ -113,9 +113,10 @@ class ExerciseGroup(WorkoutComponent):
             n_sets = len(component.exercise_sets_dict[component.exercises[0]])
             assert n_sets > 0
             for e in component.exercises:
-                new_component.exercise_sets_dict[e] = [component.exercise_sets_dict[e][0]] * (
-                    kwargs['sets'] + n_sets
-                )
+                new_component.exercise_sets_dict[e] = [
+                    component.exercise_sets_dict[e][0].model_copy(deep=True)
+                    for _ in range(kwargs['sets'] + n_sets)
+                ]
             del kwargs['sets']
 
         for key, value in kwargs.items():

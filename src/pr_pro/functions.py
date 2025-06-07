@@ -1,10 +1,11 @@
-from dataclasses import dataclass
-from typing import Protocol
 import math
+from dataclasses import dataclass
+from typing import Protocol, runtime_checkable
 
 # Source: https://www.vcalc.com/wiki/brzycki, https://www.vcalc.com/wiki/body-building-weight-lifting-calculator
 
 
+@runtime_checkable
 @dataclass(frozen=True)
 class OneRMCalculator(Protocol):
     @staticmethod
