@@ -42,11 +42,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev]
+          pip install -e .[dev]
 
       - name: Run pytest
         run: |
-          python -m pytest --cov=src/pr_pro --cov-report json
+          python -m pytest tests --cov --cov-report json
           coverage report
 
       - name:
