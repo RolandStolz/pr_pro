@@ -1,4 +1,4 @@
-from datetime import time
+import datetime
 
 from pr_pro.exercise import DurationExercise, RepsAndWeightsExercise, RepsExercise, RepsRPEExercise
 from pr_pro.exercises.common import backsquat, bench_press, deadlift, pullup, pushup, split_squat
@@ -132,7 +132,7 @@ def get_example_program() -> Program:
         WorkoutSession(id='W1D3')
         .add_component(
             SingleExercise(exercise=squat_hold).add_repeating_set(
-                3, squat_hold.create_set(duration=time(minute=1))
+                3, squat_hold.create_set(duration=datetime.timedelta(minutes=1))
             )
         )
         .add_component(

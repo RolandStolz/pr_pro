@@ -1,5 +1,7 @@
 from typing import Any, Callable, Optional, List, Tuple
-from pr_pro.sets import (  # Assuming these are Pydantic models or similar
+
+import pandas as pd
+from pr_pro.sets import (
     WorkingSet_t,
     RepsSet,
     RepsRPESet,
@@ -8,7 +10,6 @@ from pr_pro.sets import (  # Assuming these are Pydantic models or similar
     DurationSet,
 )
 import streamlit as st
-import datetime
 
 
 MetricConfig = Tuple[str, str, Optional[Callable[[Any], Any]]]
@@ -36,11 +37,34 @@ def _build_metrics_list(ws: WorkingSet_t, configs: List[MetricConfig]) -> List[T
 def _render_rest_caption(ws: WorkingSet_t) -> None:
     """Renders the rest duration caption if available."""
     if hasattr(ws, 'rest_between') and ws.rest_between:
-        # Assuming rest_between is a datetime.time or datetime.timedelta object
-        if isinstance(ws.rest_between, (datetime.time, datetime.timedelta)):
-            st.caption(f'Rest: {ws.rest_between.strftime("%M:%S")}')
-        else:
-            st.caption(f'Rest: {ws.rest_between}')  # Fallback for unknown type
+        st.caption(f'Rest: {ws.rest_between}')
+
+
+def render_set_metrics_df_style(metrics: list[tuple[str, Any]]) -> None:
+    # Note: The dataframe display would probably look nice, when all sets are displayed in one
+    st.markdown(
+        """
+                <style>
+                [data-testid="stElementToolbar"] {
+                    display: none;
+                }
+                </style>
+                """,
+        unsafe_allow_html=True,
+    )
+    """Helper to render a list of metrics in dynamically sized columns."""
+    valid_metrics = [m for m in metrics if m[1] is not None]
+    if not valid_metrics:
+        st.caption('No specific details available.')
+        return
+
+    # Create a DataFrame with labels as the index
+    df = pd.DataFrame.from_records(valid_metrics, columns=['Metric', 'Value']).set_index('Metric')
+
+    # Transpose the DataFrame so metrics become columns
+    df_transposed = df.transpose()
+
+    st.dataframe(df_transposed, hide_index=True, use_container_width=True)
 
 
 def render_set_metrics(metrics: list[tuple[str, Any]]) -> None:
@@ -55,9 +79,11 @@ def render_set_metrics(metrics: list[tuple[str, Any]]) -> None:
     col_idx = 0
     for label, value in valid_metrics:
         display_value = value
+
         # Ensure display_value is a type st.metric can handle directly, or convert to string
         if not isinstance(value, (int, float, complex, str)):
             display_value = str(value)
+
         cols[col_idx].metric(label, display_value)
         col_idx += 1
 
