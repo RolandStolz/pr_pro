@@ -81,12 +81,12 @@ class RepsAndWeightsSet(RepsSet):
             )
             percentage = weight / best_exercise_value
 
-            assert (
-                self.weight is None or self.weight - weight < tol
-            ), f'Missmatch between provided weight {self.weight} and computed weight {weight}.'
-            assert (
-                self.percentage is None or self.percentage - percentage < tol
-            ), f'Missmatch between provided percentage {self.percentage} and computed percentage {percentage}.'
+            assert self.weight is None or self.weight - weight < tol, (
+                f'Missmatch between provided weight {self.weight} and computed weight {weight}.'
+            )
+            assert self.percentage is None or self.percentage - percentage < tol, (
+                f'Missmatch between provided percentage {self.percentage} and computed percentage {percentage}.'
+            )
             self.weight = weight
             self.percentage = percentage
         else:
