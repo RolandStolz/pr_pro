@@ -7,9 +7,18 @@ authors = [
     { name = "Roland Stolz", email = "roland.stolz9@gmail.com" }
 ]
 requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "pydantic>=2.11.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/rolandstolz/pr_pro"
+
 
 [project.optional-dependencies]
 vis = [
@@ -37,7 +46,7 @@ target-version = "py313"
 
 [tool.coverage.run]
 omit = [
-    "tests/*", 
+    "tests/*",
     "examples/*",
     "src/pr_pro/streamlit_vis/*"
 ]

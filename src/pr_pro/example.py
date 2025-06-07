@@ -14,19 +14,22 @@ from pr_pro.workout_session import (
 def get_simple_example_program() -> Program:
     pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
 
-    program = Program(name='Test program').add_best_exercise_value(backsquat, 100)
-    program.add_best_exercise_value(pendlay_row, program.best_exercise_values[backsquat] * 0.6)
+    program = (
+        Program(name='Test program')
+        .add_best_exercise_value(backsquat, 100)
+        .add_best_exercise_value(bench_press, 80)
+    )
 
     w1d1 = (
-        WorkoutSession(id='W1D1', notes='Power day.')
+        WorkoutSession(id='W1D1', notes='Easy on first day.')
         .add_component(
             SingleExercise(exercise=backsquat).add_repeating_set(
-                4, backsquat.create_set(5, percentage=0.55)
+                2, backsquat.create_set(5, percentage=0.55)
             )
         )
         .add_component(
             ExerciseGroup(exercises=[pendlay_row, pushup]).add_repeating_group_sets(
-                4,
+                2,
                 {
                     pendlay_row: pendlay_row.create_set(6, percentage=0.6),
                     pushup: pushup.create_set(10),
@@ -34,8 +37,8 @@ def get_simple_example_program() -> Program:
             )
         )
         .add_component(
-            SingleExercise(exercise=pendlay_row).add_repeating_set(
-                4, pendlay_row.create_set(6, percentage=0.6)
+            SingleExercise(exercise=bench_press).add_repeating_set(
+                2, bench_press.create_set(8, percentage=0.5)
             )
         )
     )
@@ -212,6 +215,9 @@ def get_example_program() -> Program:
         )
     )
     program.add_workout_session(w2d3)
+
+    program.add_program_phase('W1', [w1d1.id, w1d2.id, w1d3.id])
+    program.add_program_phase('W2', [w2d1.id, w2d2.id, w2d3.id])
 
     return program
 
