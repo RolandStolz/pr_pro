@@ -46,7 +46,7 @@ jobs:
 
       - name: Run pytest
         run: |
-          python -m pytest tests --cov=src/pr_pro --cov-report json
+          python -m pytest --cov=src/pr_pro --cov-report json
           coverage report
 
       - name:
