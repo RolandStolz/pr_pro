@@ -1,7 +1,7 @@
 [project]
 name = "pr-pro"
 version = "0.1.0"
-description = "Add your description here"
+description = "PRogramming PROgrams is a Python library for defining training programs."
 readme = "README.md"
 authors = [
     { name = "Roland Stolz", email = "roland.stolz9@gmail.com" }
