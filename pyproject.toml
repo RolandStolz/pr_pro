@@ -34,3 +34,10 @@ line-length = 100
 indent-width = 4
 format.quote-style = "single"
 target-version = "py313"
+
+[tool.coverage.run]
+omit = [
+    "tests/*", 
+    "examples/*",
+    "src/pr_pro/streamlit_vis/*"
+]
