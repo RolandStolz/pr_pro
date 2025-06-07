@@ -68,4 +68,4 @@ def load_program_data():
 
 if __name__ == '__main__':
     program = load_program_data()
-    run_streamlit_app(program, use_persistent_state=True)
+    run_streamlit_app(program, use_persistent_state=False)

@@ -64,4 +64,4 @@ streamlit run streamlit_app.py
 The app looks like this:
 ![Streamlit app example](https://RolandStolz.github.io/pr_pro/streamlit_app_example.png)
 
-For a live demo go to [https://pr-pro.streamlit.app](https://pr-pro.streamlit.app)
+For a live demo go to [https://pr-pro-demo.streamlit.app/](https://pr-pro-demo.streamlit.app/)
