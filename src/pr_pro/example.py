@@ -4,7 +4,11 @@ from pr_pro.exercise import DurationExercise, RepsAndWeightsExercise, RepsExerci
 from pr_pro.exercises.common import backsquat, bench_press, deadlift, pullup, pushup, split_squat
 from pr_pro.program import Program
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
-from pr_pro.workout_session import WorkoutSession
+from pr_pro.workout_session import (
+    WorkoutSession,
+    exercise_group_from_prev_session,
+    single_exercise_from_prev_session,
+)
 
 
 def get_simple_example_program() -> Program:
@@ -164,4 +168,54 @@ def get_example_program() -> Program:
     )
     program.add_workout_session(w1d3)
 
+    w2d1 = (
+        WorkoutSession(id='W2D1')
+        .add_component(single_exercise_from_prev_session(w1d1, box_jump, reps=+1))
+        .add_component(single_exercise_from_prev_session(w1d1, backsquat, percentage=+0.1))
+        .add_component(
+            exercise_group_from_prev_session(
+                w1d1,
+                [pendlay_row, dumbbell_shoulder_press],
+                percentage=(+0.05, None),
+                rpe=(None, +1),
+            )
+        )
+        .add_component(exercise_group_from_prev_session(w1d1, [hip_thrust, side_plank_leg_raise]))
+    )
+    program.add_workout_session(w2d1)
+
+    w2d2 = (
+        WorkoutSession(id='W2D2')
+        .add_component(single_exercise_from_prev_session(w1d2, deadlift, percentage=+0.05, reps=-2))
+        .add_component(single_exercise_from_prev_session(w1d2, split_squat, weight=+10))
+        .add_component(exercise_group_from_prev_session(w1d2, [pullup, pushup], reps=(+1, +1)))
+        .add_component(
+            exercise_group_from_prev_session(w1d2, [cable_pulldown, pallov_press], rpe=(+1, +1))
+        )
+    )
+    program.add_workout_session(w2d2)
+
+    w2d3 = (
+        WorkoutSession(id='W2D3')
+        .add_component(
+            single_exercise_from_prev_session(
+                w1d3, squat_hold, duration=datetime.timedelta(seconds=30)
+            )
+        )
+        .add_component(single_exercise_from_prev_session(w1d3, backsquat, percentage=+0.1))
+        .add_component(single_exercise_from_prev_session(w1d3, deadlift, percentage=+0.05))
+        .add_component(single_exercise_from_prev_session(w1d3, bench_press, percentage=+0.05))
+        .add_component(
+            exercise_group_from_prev_session(
+                w1d3, [hanging_knee_raise, reverse_hyperextension], weight=(+5, None)
+            )
+        )
+    )
+    program.add_workout_session(w2d3)
+
     return program
+
+
+if __name__ == '__main__':
+    program = get_example_program()
+    print(program)

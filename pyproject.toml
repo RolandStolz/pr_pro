@@ -1,6 +1,6 @@
 [project]
 name = "pr-pro"
-version = "0.1.0"
+version = "1.0.0"
 description = "PRogramming PROgrams is a Python library for defining training programs."
 readme = "README.md"
 authors = [
@@ -19,6 +19,7 @@ vis = [
 ]
 dev = [
     "pytest>=8.4.0",
+    "pytest-cov>=6.1.1",
 ]
 
 [project.scripts]

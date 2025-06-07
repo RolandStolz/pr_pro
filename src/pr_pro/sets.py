@@ -58,7 +58,7 @@ class RepsAndWeightsSet(RepsSet):
             if self.percentage is None:
                 self.percentage = self.weight / best_exercise_value
             else:
-                assert self.percentage - self.weight / best_exercise_value < tol, (
+                assert self.percentage - self.weight / best_exercise_value <= tol, (
                     f'Missmatch between provided percentage {self.percentage} and '
                     f'weight {self.weight} and best exercise value {best_exercise_value}.'
                 )
@@ -67,7 +67,7 @@ class RepsAndWeightsSet(RepsSet):
             if self.weight is None:
                 self.weight = best_exercise_value * self.percentage
             else:
-                assert self.weight - best_exercise_value * self.percentage < tol, (
+                assert self.weight - best_exercise_value * self.percentage <= tol, (
                     f'Missmatch between provided weight {self.weight} and '
                     f'percentage {self.percentage} and best exercise value {best_exercise_value}.'
                 )
@@ -81,10 +81,10 @@ class RepsAndWeightsSet(RepsSet):
             )
             percentage = weight / best_exercise_value
 
-            assert self.weight is None or self.weight - weight < tol, (
+            assert self.weight is None or self.weight - weight <= tol, (
                 f'Missmatch between provided weight {self.weight} and computed weight {weight}.'
             )
-            assert self.percentage is None or self.percentage - percentage < tol, (
+            assert self.percentage is None or self.percentage - percentage <= tol, (
                 f'Missmatch between provided percentage {self.percentage} and computed percentage {percentage}.'
             )
             self.weight = weight
@@ -119,7 +119,7 @@ class PowerExerciseSet(RepsSet):
             if self.percentage is None:
                 self.percentage = self.weight / best_exercise_value
             else:
-                assert self.percentage - best_exercise_value / self.weight < tol, (
+                assert self.percentage - best_exercise_value / self.weight <= tol, (
                     f'Missmatch between provided percentage {self.percentage} and '
                     f'weight {self.weight} and best exercise value {best_exercise_value}.'
                 )
@@ -128,7 +128,7 @@ class PowerExerciseSet(RepsSet):
             if self.weight is None:
                 self.weight = best_exercise_value * self.percentage
             else:
-                assert self.weight - best_exercise_value * self.percentage < tol, (
+                assert self.weight - best_exercise_value * self.percentage <= tol, (
                     f'Missmatch between provided weight {self.weight} and '
                     f'percentage {self.percentage} and best exercise value {best_exercise_value}.'
                 )
