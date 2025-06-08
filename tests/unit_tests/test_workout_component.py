@@ -56,14 +56,24 @@ class TestExerciseGroup:
         group = ExerciseGroup(exercises=[bench_press, pullup])
         assert list(group.exercise_sets_dict.keys()) == [bench_press, pullup]
 
+        with pytest.raises(ValueError, match='Exercise Pullup is already part of this group.'):
+            group.add_exercise(pullup)
+
         # Test adding a duplicate exercise
         with pytest.raises(ValueError, match='must be unique in the group'):
             ExerciseGroup(exercises=[bench_press, bench_press])
 
         # Test removing an exercise
+        with pytest.raises(ValueError, match='Exercise Backsquat is not part of this group.'):
+            group.remove_exercise(backsquat)
+
         group.remove_exercise(pullup)
         assert group.exercises == [bench_press]
         assert pullup not in group.exercise_sets_dict
+
+        # Test adding another exercise
+        group.add_exercise(backsquat)
+        group.add_repeating_set(2, backsquat.create_set(1, 100), exercise=backsquat)
 
     def test_add_group_sets(self):
         """Tests adding sets to the entire group at once."""

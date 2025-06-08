@@ -17,5 +17,5 @@ pendlay_row = RepsAndWeightsExercise(name='Pendlay Row')
 hip_thrust = RepsAndWeightsExercise(name='Hip Thrust')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     print(pullup.model_dump())

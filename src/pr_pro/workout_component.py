@@ -242,7 +242,7 @@ class ExerciseGroup(WorkoutComponent):
 WorkoutComponent_t = SingleExercise | ExerciseGroup
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     bench_press = RepsAndWeightsExercise(name='Benchpress')
     row = RepsAndWeightsExercise(name='Row')
     squat = RepsAndWeightsExercise(name='Squat')

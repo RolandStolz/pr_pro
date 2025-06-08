@@ -49,7 +49,7 @@ class RepsExercise(Exercise):
     def create_set(reps: int) -> RepsSet:
         return RepsSet(reps=reps)
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: no cover
 
         def __hash__(self) -> int: ...
 
@@ -62,7 +62,7 @@ class RepsRPEExercise(RepsExercise):
     def create_set(reps: int, rpe: int) -> RepsSet:
         return RepsRPESet(reps=reps, rpe=rpe)
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: no cover
 
         def __hash__(self) -> int: ...
 
@@ -85,7 +85,7 @@ class RepsAndWeightsExercise(RepsExercise):
             percentage=percentage,
         )
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: no cover
 
         def __hash__(self) -> int: ...
 
@@ -106,7 +106,7 @@ class PowerExercise(RepsExercise):
             percentage=percentage,
         )
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: no cover
 
         def __hash__(self) -> int: ...
 
@@ -128,7 +128,7 @@ class DurationExercise(Exercise):
     def create_set(duration: datetime.timedelta) -> DurationSet:
         return DurationSet(duration=duration)
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: no cover
 
         def __hash__(self) -> int: ...
 
@@ -153,6 +153,6 @@ def get_exercise_type_by_key_string(key: str) -> type[Exercise]:
     return type_dict[type_name]
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     test = PowerExercise(name='test')
     print(test.model_dump())

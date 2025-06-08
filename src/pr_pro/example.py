@@ -222,6 +222,6 @@ def get_example_program() -> Program:
     return program
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     program = get_example_program()
     print(program)
