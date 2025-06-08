@@ -1,6 +1,8 @@
 from pr_pro.configs import ComputeConfig
+from pr_pro.exercise import RepsAndWeightsExercise
 from pr_pro.functions import Brzycki1RMCalculator
 from pr_pro.program import Program
+from pr_pro.exercises.common import backsquat, deadlift
 
 
 def test_simple_plan_creation(simple_example_program: Program):
@@ -14,6 +16,21 @@ def test_example_plan_creation(example_program: Program):
     example_program.compute_values(
         compute_config=ComputeConfig(one_rm_calculator=Brzycki1RMCalculator())
     )
+    print(example_program)
+
+
+def test_compute_with_associations(example_program: Program):
+    pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
+    del example_program.best_exercise_values[backsquat]
+    del example_program.best_exercise_values[pendlay_row]
+
+    example_program.compute_values(
+        compute_config=ComputeConfig(
+            one_rm_calculator=Brzycki1RMCalculator(),
+            exercise_associations={backsquat: deadlift, pendlay_row: deadlift},
+        )
+    )
+
     print(example_program)
 
 

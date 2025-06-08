@@ -86,10 +86,20 @@ class SingleExercise(WorkoutComponent):
     def compute_values(
         self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
     ) -> None:
-        if self.exercise not in best_exercise_values:
+        best_value = best_exercise_values.get(self.exercise)
+
+        # If not found, try to find an associated exercise and get its value.
+        if best_value is None:
+            associated_exercise = compute_config.exercise_associations.get(self.exercise)
+            if not associated_exercise:
+                return None
+            best_value = best_exercise_values.get(associated_exercise)
+
+        if best_value is None:
             return None
+
         for working_set in self.sets:
-            working_set.compute_values(best_exercise_values[self.exercise], compute_config)
+            working_set.compute_values(best_value, compute_config)
 
 
 class ExerciseGroup(WorkoutComponent):
@@ -213,10 +223,20 @@ class ExerciseGroup(WorkoutComponent):
         self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
     ) -> None:
         for exercise, sets in self.exercise_sets_dict.items():
-            if exercise not in best_exercise_values:
-                continue
+            best_value = best_exercise_values.get(exercise)
+
+            # If not found, try to find an associated exercise and get its value.
+            if best_value is None:
+                associated_exercise = compute_config.exercise_associations.get(exercise)
+                if not associated_exercise:
+                    return None
+                best_value = best_exercise_values.get(associated_exercise)
+
+            if best_value is None:
+                return None
+
             for working_set in sets:
-                working_set.compute_values(best_exercise_values[exercise], compute_config)
+                working_set.compute_values(best_value, compute_config)
 
 
 WorkoutComponent_t = SingleExercise | ExerciseGroup
