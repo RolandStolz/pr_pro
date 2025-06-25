@@ -1,6 +1,6 @@
 import streamlit as st
 
-from pr_pro.streamlit_vis.sets import display_set_details_ui, display_sets_table_ui
+from pr_pro.streamlit_vis.sets import display_set_details_ui
 from pr_pro.streamlit_vis.state import register_key_for_persistence, save_persisted_state_to_file
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
 from pr_pro.workout_session import WorkoutSession
@@ -27,7 +27,29 @@ def render_single_exercise_component_ui(
     _add_comment(component_key, use_persistent_state)
 
     if component.sets:
-        display_sets_table_ui(component.sets)
+        for set_idx, working_set in enumerate(component.sets):
+            checkbox_key = f'{session.id}_{component.exercise.name}_{set_idx}'
+            if checkbox_key not in st.session_state:
+                st.session_state[checkbox_key] = False
+
+            if use_persistent_state:
+                register_key_for_persistence(checkbox_key, default_value=False)
+
+            with st.expander(
+                f'**Set {set_idx + 1}**',
+                expanded=not st.session_state[checkbox_key],
+                icon='✅' if st.session_state[checkbox_key] else None,
+            ):
+                cols = st.columns([1, 7], border=False, vertical_alignment='top')
+                with cols[0]:
+                    # st.markdown(f'**Set {set_idx + 1}**')
+                    st.checkbox(
+                        'done',
+                        key=f'{session.id}_{component.exercise.name}_{set_idx}',
+                        on_change=save_persisted_state_to_file if use_persistent_state else None,
+                    )
+                with cols[1]:
+                    display_set_details_ui(working_set)
     else:
         st.info('No sets defined for this exercise.')
 
