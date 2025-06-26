@@ -48,7 +48,17 @@ def run_streamlit_app(program: Program, use_persistent_state: bool = False):
 
     st.checkbox('Show session comparison', value=False, key='show_comparison')
     if st.session_state.get('show_comparison', False):
-        session_ids_remaining = [sid for sid in session_ids if sid != selected_session_id]
+        phase = st.pills(
+            'Phases',
+            program.program_phases.keys(),
+            default=list(program.program_phases.keys())[0],
+            key='comparison_phase',
+        )
+        session_ids_remaining = [
+            sid
+            for sid in program.program_phases[phase]  # type: ignore
+            if sid != selected_session_id
+        ]
         selected_session_comparison_id = st.selectbox(
             'Select Workout Session', options=session_ids_remaining, index=0
         )
