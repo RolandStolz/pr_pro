@@ -587,9 +587,10 @@ wheels = [
 
 [[package]]
 name = "pr-pro"
-version = "1.0.0"
+version = "1.0.2"
 source = { editable = "." }
 dependencies = [
+    { name = "pandas" },
     { name = "pydantic" },
 ]
 
@@ -607,6 +608,7 @@ vis = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", marker = "extra == 'vis'", specifier = ">=3.10.3" },
+    { name = "pandas", specifier = ">=2.3.0" },
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.1.1" },
