@@ -101,7 +101,8 @@ def display_sets_table_ui(sets: List[WorkingSet_t]):
         use_container_width=True,
         column_config={
             # For left alignment
-            'Set': st.column_config.TextColumn(),
+            'Set': st.column_config.TextColumn(width='small', pinned=True),
             'Reps': st.column_config.TextColumn(),
+            'RPE': st.column_config.TextColumn(),
         },
     )
