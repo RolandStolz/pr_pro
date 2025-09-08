@@ -135,6 +135,10 @@ def main():
     program.compute_values(compute_config=ComputeConfig())
     print(program)
 
+    # Uncomment to export as pdf
+    # from pathlib import Path
+    # program.export_to_pdf(Path('test.pdf'))
+
 
 if __name__ == '__main__':
     main()

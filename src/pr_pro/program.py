@@ -64,6 +64,15 @@ class Program(BaseModel):
         with open(file_path, 'w') as f:
             f.write(self.model_dump_json(indent=2))
 
+    def export_to_pdf(self, file_path: Path) -> None:
+        try:
+            from pr_pro.pdf_export import export_program_to_pdf
+        except ImportError as e:
+            raise ImportError(
+                "PDF export requires additional dependencies. Please install with 'pip install pr_pro[vis]'"
+            ) from e
+        export_program_to_pdf(self, file_path)
+
     @staticmethod
     def from_json_file(file_path: Path) -> Program:
         with open(file_path, 'r') as f:

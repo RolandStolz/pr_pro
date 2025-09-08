@@ -23,6 +23,7 @@ Homepage = "https://github.com/rolandstolz/pr_pro"
 
 [project.optional-dependencies]
 vis = [
+    "fpdf2>=2.8.4",
     "matplotlib>=3.10.3",
     "streamlit>=1.45.1",
     "watchdog>=6.0.0",
