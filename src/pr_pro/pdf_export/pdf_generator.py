@@ -34,6 +34,9 @@ class WorkoutPDF(FPDF):
             self.set_font('Arial', 'B', 12)
             self.ln(1)
 
+        if level != 1:
+            self.start_section(heading, level - 1)
+
         self.cell(0, 8, heading, 0, 1, 'L')
         if level == 2:
             self.line(10, self.get_y(), self.w - 10, self.get_y())
