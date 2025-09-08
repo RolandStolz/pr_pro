@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          uv pip install -e ".[dev,vis]"
+          pip install -e ".[dev,vis]"
 
       - name: Run pytest
         run: |
