@@ -6,7 +6,7 @@
 1. Modular and extensible definition of different types of exercises
 2. Export to and import from `json` files
 3. Automatic computation of weights based on defined max values
-3. Simple visualization in the command line
+3. Render as **plain text** or **pdf**
 4. **Ready to deploy** `streamlit` app for each custom program that you define
 
 ## Simple example
@@ -14,6 +14,9 @@
 program = get_simple_example_program()
 program.compute_values(ComputeConfig(one_rm_calculator=Brzycki1RMCalculator()))
 print(program)
+
+# Export to pdf
+program.export_to_pdf(Path('example.pdf'))
 ```
 ```
 --- Workout Test program ---
