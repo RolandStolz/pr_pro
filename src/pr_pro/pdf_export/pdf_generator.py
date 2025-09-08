@@ -213,7 +213,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                 # Add notes underneath if provided
                 if component.notes:
                     pdf.set_font('Arial', 'I', 10)
-                    pdf.cell(0, 6, component.notes, 0, 1, 'L')
+                    pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
 
                 pdf.ln(2)
 
@@ -224,7 +224,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                 # Add group notes underneath if provided
                 if component.notes:
                     pdf.set_font('Arial', 'I', 10)
-                    pdf.cell(0, 6, component.notes, 0, 1, 'L')
+                    pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
                     pdf.ln(1)
 
                 # For exercise groups with 2 exercises, place side by side
