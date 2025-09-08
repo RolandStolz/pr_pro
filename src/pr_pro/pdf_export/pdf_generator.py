@@ -35,6 +35,9 @@ class WorkoutPDF(FPDF):
             self.ln(1)
 
         self.cell(0, 8, heading, 0, 1, 'L')
+        if level == 2:
+            self.line(10, self.get_y(), self.w - 10, self.get_y())
+
         self.ln(1)
 
     def add_text(self, text: str, bold: bool = False):
@@ -63,7 +66,9 @@ class WorkoutPDF(FPDF):
                 self.cell(0, 6, line, 0, 1, 'L')
         self.ln(2)
 
-    def add_exercise_table(self, exercise_name, sets_data, table_width=None, start_x=None):
+    def add_exercise_table(
+        self, exercise_name, sets_data, table_width=None, start_x=None, part_of_group=False
+    ):
         """Add a table for an exercise with its sets."""
         if table_width is None:
             table_width = self.w - 2 * self.l_margin
@@ -81,7 +86,7 @@ class WorkoutPDF(FPDF):
         if 'reps' in column_names:
             ordered_columns.append('reps')
             column_names.remove('reps')
-        
+
         # Add remaining columns in sorted order
         ordered_columns.extend(sorted(column_names))
         column_names = ordered_columns
@@ -104,10 +109,14 @@ class WorkoutPDF(FPDF):
         #     self.add_page()
 
         # Exercise name header
-        self.set_font('Arial', 'B', 12)
-        self.set_x(start_x)
-        self.cell(table_width, 8, exercise_name, 0, 1, 'L')
-        self.ln(2)
+        if part_of_group:
+            self.set_font('Arial', 'B', 10)
+            self.set_x(start_x)
+            self.cell(table_width, 8, exercise_name, 0, 1, 'L')
+            self.ln(1)
+        else:
+            self.add_heading(exercise_name, 3)
+            self.ln(2)
 
         # Table header
         self.set_font('Arial', 'B', 10)
@@ -135,7 +144,11 @@ class WorkoutPDF(FPDF):
             for col in column_names:
                 value = set_dict.get(col, '')
                 if isinstance(value, float):
-                    value = f'{value:.1f}'
+                    # value = f'{value:.1f}'
+                    # value = f'{value}'
+                    # Check if value is decimal
+                    value = round(value, 3)
+
                 self.cell(col_width, 6, str(value), 1, 0, 'C')
             self.ln()
 
@@ -154,7 +167,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
     if program.best_exercise_values:
         pdf.add_heading('Best Exercise Values', level=1)
         for exercise, value in program.best_exercise_values.items():
-            pdf.add_text(f'{exercise.name}: {value:.1f} kg', bold=False)
+            pdf.add_text(f'{exercise.name}: {value} kg', bold=False)
         pdf.ln(2)
 
     # Program phases (if any)
@@ -256,6 +269,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                         all_sets_data[exercise],
                         table_width=table_width,
                         start_x=pdf.l_margin,
+                        part_of_group=True,
                     )
                     first_table_bottom = pdf.get_y()
 
@@ -268,6 +282,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                         all_sets_data[exercise],
                         table_width=table_width,
                         start_x=second_table_start_x,
+                        part_of_group=True,
                     )
                     second_table_bottom = pdf.get_y()
 
@@ -294,9 +309,9 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                 pdf.ln(2)
 
         # Add page break between sessions if not the last one
-        session_ids = list(program.workout_session_dict.keys())
-        if session_id != session_ids[-1]:
-            pdf.add_page()
+        # session_ids = list(program.workout_session_dict.keys())
+        # if session_id != session_ids[-1]:
+        #     pdf.add_page()
 
     # Save the PDF
     pdf.output(str(output_path))
