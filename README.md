@@ -2,6 +2,8 @@
 ---
 [![cov](https://RolandStolz.github.io/pr_pro/badges/coverage.svg)](https://github.com/RolandStolz/pr_pro/actions)
 
+https://pypi.org/project/pr-pro/
+
 `pr_pro` is a Python package for defining training programs. It's main features at a glance are:
 1. Modular and extensible definition of different types of exercises
 2. Export to and import from `json` files
