@@ -1,4 +1,3 @@
-from datetime import time
 from pr_pro.workout_session import WorkoutSession
 from pr_pro.program import Program
 from pr_pro.exercise import DurationExercise, RepsExercise
@@ -85,11 +84,13 @@ def main():
     )
     program.add_workout_session(w1d2)
 
+    from datetime import timedelta
+
     w1d3 = (
         WorkoutSession(id='W1D3')
         .add_co(
             SE(exercise=squat_hold).add_repeating_set(
-                3, squat_hold.create_set(duration=time(minute=1))
+                3, squat_hold.create_set(duration=timedelta(minutes=1))
             )
         )
         .add_co(

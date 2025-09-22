@@ -9,7 +9,6 @@ from pr_pro.workout_component import ExerciseGroup, SingleExercise
 
 
 def main():
-    box_jump = RepsExercise(name='Box jump')
     pendlay_row = RepsAndWeightsExercise(name='Pendlay row')
     dumbbell_shoulder_press = RepsRPEExercise(name='Dumbbell shoulder press')
     hip_thrust = RepsAndWeightsExercise(name='Hip thrust')
@@ -22,19 +21,19 @@ def main():
 
     program = (
         Program(name='Test program')
-        .add_best_exercise_value(backsquat, 55)
+        .add_best_exercise_value(backsquat, 60)
         .add_best_exercise_value(deadlift, 90)
         .add_best_exercise_value(bench_press, 50)
     )
-    program.add_best_exercise_value(pendlay_row, program.best_exercise_values[deadlift] * 0.6)
+    # program.add_best_exercise_value(pendlay_row, program.best_exercise_values[deadlift] * 0.6)
 
     w1d1 = (
         WorkoutSession(id='W1D1', notes='Power day.')
-        .add_component(
-            SingleExercise(exercise=box_jump, notes='Good warmup please!').add_repeating_set(
-                5, box_jump.create_set(4)
-            )
-        )
+        # .add_component(
+        #     SingleExercise(exercise=box_jump, notes='Good warmup please!').add_repeating_set(
+        #         5, box_jump.create_set(4)
+        #     )
+        # )
         .add_component(
             SingleExercise(exercise=backsquat).add_repeating_set(
                 4, backsquat.create_set(5, percentage=0.55)
@@ -85,11 +84,14 @@ def main():
             )
         )
         .add_component(
-            ExerciseGroup(exercises=[cable_pulldown, pallov_press]).add_repeating_group_sets(
+            ExerciseGroup(
+                exercises=[cable_pulldown, pallov_press, dumbbell_shoulder_press]
+            ).add_repeating_group_sets(
                 4,
                 {
                     cable_pulldown: cable_pulldown.create_set(10, rpe=6),
                     pallov_press: pallov_press.create_set(10, rpe=6),
+                    dumbbell_shoulder_press: dumbbell_shoulder_press.create_set(10, rpe=6),
                 },
             )
         )
@@ -136,8 +138,9 @@ def main():
     print(program)
 
     # Uncomment to export as pdf
-    # from pathlib import Path
-    # program.export_to_pdf(Path('test.pdf'))
+    from pathlib import Path
+
+    program.export_to_pdf(Path('test.pdf'))
 
 
 if __name__ == '__main__':
