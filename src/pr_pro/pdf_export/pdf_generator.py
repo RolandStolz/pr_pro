@@ -231,7 +231,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                     pdf.ln(1)
 
                 # For exercise groups with 2 exercises, place side by side
-                if len(component.exercises) == 2:
+                if len(component.exercises) <= 3:
                     # Collect sets data for each exercise individually (no unified columns)
                     all_sets_data = {}
 
@@ -255,42 +255,30 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                     current_y = pdf.get_y()
                     page_height = pdf.h - pdf.b_margin
 
-                    # If tables won't fit on current page, start a new page
                     if current_y + estimated_table_height > page_height:
                         pdf.add_page()
 
-                    # Calculate table positioning for side-by-side layout
-                    table_width = (
-                        pdf.w - 2 * pdf.l_margin - 10
-                    ) / 2  # Leave some margin between tables
+                    # If tables won't fit on current page, start a new page
+                    num_ex = len(component.exercises)
+                    gap = 6
+                    table_width = (pdf.w - 2 * pdf.l_margin - gap * (num_ex - 1)) / num_ex
                     start_y = pdf.get_y()
 
-                    # First exercise table (left side) - use only its own columns
-                    exercise = component.exercises[0]
-                    pdf.add_exercise_table(
-                        exercise.name,
-                        all_sets_data[exercise],
-                        table_width=table_width,
-                        start_x=pdf.l_margin,
-                        part_of_group=True,
-                    )
-                    first_table_bottom = pdf.get_y()
-
-                    # Second exercise table (right side) - use only its own columns
-                    pdf.set_y(start_y)  # Reset to same Y position
-                    exercise = component.exercises[1]
-                    second_table_start_x = pdf.l_margin + table_width + 10
-                    pdf.add_exercise_table(
-                        exercise.name,
-                        all_sets_data[exercise],
-                        table_width=table_width,
-                        start_x=second_table_start_x,
-                        part_of_group=True,
-                    )
-                    second_table_bottom = pdf.get_y()
+                    bottoms = []
+                    for i, exercise in enumerate(component.exercises):
+                        pdf.set_y(start_y)
+                        start_x = pdf.l_margin + i * (table_width + gap)
+                        pdf.add_exercise_table(
+                            exercise.name,
+                            all_sets_data[exercise],
+                            table_width=table_width,
+                            start_x=start_x,
+                            part_of_group=True,
+                        )
+                        bottoms.append(pdf.get_y())
 
                     # Move to bottom of both tables
-                    pdf.set_y(max(first_table_bottom, second_table_bottom))
+                    pdf.set_y(max(bottoms))
                 else:
                     # For other cases, stack vertically
                     for exercise in component.exercises:
