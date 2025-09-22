@@ -254,6 +254,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
                     estimated_table_height = 6 + (max_sets + 1) * 7  # header + data rows
                     current_y = pdf.get_y()
                     page_height = pdf.h - pdf.b_margin
+
                     if current_y + estimated_table_height > page_height:
                         pdf.add_page()
 

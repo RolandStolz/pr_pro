@@ -138,9 +138,8 @@ def main():
     print(program)
 
     # Uncomment to export as pdf
-    from pathlib import Path
-
-    program.export_to_pdf(Path('test.pdf'))
+    # from pathlib import Path
+    # program.export_to_pdf(Path('test.pdf'))
 
 
 if __name__ == '__main__':
