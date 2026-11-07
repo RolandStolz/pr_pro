@@ -178,3 +178,4 @@ test.json
 
 app_state.json
 .DS_Store
+*.pdf

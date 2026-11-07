@@ -138,8 +138,11 @@ def main():
     print(program)
 
     # Uncomment to export as pdf
-    # from pathlib import Path
-    # program.export_to_pdf(Path('test.pdf'))
+    from pathlib import Path
+
+    program.export_to_pdf(
+        Path('test.pdf'), exclude_metrics=['relative_percentage'], notes_field=True
+    )
 
 
 if __name__ == '__main__':

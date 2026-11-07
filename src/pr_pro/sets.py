@@ -152,12 +152,21 @@ class DurationSet(WorkingSet):
 WorkingSet_t = RepsSet | RepsRPESet | RepsAndWeightsSet | PowerExerciseSet | DurationSet
 
 
+def format_duration(d: datetime.timedelta) -> str:
+    """Render a timedelta as M:SS, or H:MM:SS once it reaches an hour."""
+    hours, remainder = divmod(int(d.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f'{hours}:{minutes:02d}:{seconds:02d}'
+    return f'{minutes}:{seconds:02d}'
+
+
 MetricConfig = tuple[str, str, Callable[[Any], Any] | None]
 
 METRIC_CONFIGS: dict[type[WorkingSet_t], list[MetricConfig]] = {
     RepsAndWeightsSet: [
         ('reps', 'Reps', None),
-        ('weight', 'Weight (kg)', lambda w: f'{round(w, 1)}'),
+        ('weight', 'Weight', lambda w: f'{round(w, 1):g}'),
         ('percentage', 'Abs %', lambda p: f'{p * 100:.0f}%'),
         ('relative_percentage', 'Rel %', lambda rp: f'{rp * 100:.0f}%'),
     ],
@@ -167,20 +176,26 @@ METRIC_CONFIGS: dict[type[WorkingSet_t], list[MetricConfig]] = {
     ],
     PowerExerciseSet: [
         ('reps', 'Reps', None),
-        ('weight', 'Weight (kg)', lambda w: f'{round(w, 1)}'),
+        ('weight', 'Weight', lambda w: f'{round(w, 1):g}'),
         ('percentage', 'Abs %', lambda p: f'{p * 100:.0f}%'),
     ],
     RepsSet: [
         ('reps', 'Reps', None),
     ],
     DurationSet: [
-        (
-            'duration',
-            'Duration',
-            lambda d: d.strftime('%M:%S') if hasattr(d, 'strftime') else str(d),
-        ),
+        ('duration', 'Duration', format_duration),
     ],
 }
+
+
+SET_LABEL = 'Set'
+REST_LABEL = 'Rest'
+
+# Field name -> the column heading it produces, for callers that want to name a
+# metric by its attribute (e.g. 'relative_percentage') rather than its label.
+METRIC_LABELS: dict[str, str] = {
+    attr: label for configs in METRIC_CONFIGS.values() for attr, label, _ in configs
+} | {'rest_between': REST_LABEL}
 
 
 def _get_metric_config(set_instance: WorkingSet_t) -> list[MetricConfig]:
@@ -235,7 +250,7 @@ def create_sets_dataframe(_sets: list[WorkingSet_t]) -> pd.DataFrame:
     all_set_metrics = []
     for i, ws in enumerate(_sets):
         metrics_list = _build_metrics_list(ws, configs)
-        metrics_dict = {'Set': i + 1}
+        metrics_dict = {SET_LABEL: i + 1}
         # metrics_dict = {label: value for label, value in metrics_list}
         for label, value in metrics_list:
             metrics_dict[label] = value
@@ -243,11 +258,12 @@ def create_sets_dataframe(_sets: list[WorkingSet_t]) -> pd.DataFrame:
         all_set_metrics.append(metrics_dict)
 
     df = pd.DataFrame(all_set_metrics)
-    cols = ['Set'] + [col for col in df.columns if col != 'Set']
+    cols = [SET_LABEL] + [col for col in df.columns if col != SET_LABEL]
     df = df[cols]
 
     if first_set.rest_between is not None:
-        rest_times = [getattr(s, 'rest_between', None) for s in _sets]
-        df['Rest'] = rest_times
+        df[REST_LABEL] = [
+            format_duration(s.rest_between) if s.rest_between is not None else '' for s in _sets
+        ]
 
     return df

@@ -1,6 +1,6 @@
 [project]
 name = "pr-pro"
-version = "1.1.1"
+version = "1.2.0"
 description = "PRogramming PROgrams is a Python library for defining training programs."
 readme = "README.md"
 authors = [
@@ -24,11 +24,13 @@ Homepage = "https://github.com/rolandstolz/pr_pro"
 [project.optional-dependencies]
 vis = [
     "fpdf2>=2.8.4",
+    "pypdf>=5.1.0",
     "matplotlib>=3.10.3",
     "streamlit>=1.45.1",
     "watchdog>=6.0.0",
 ]
 dev = [
+    "pypdf>=5.1.0",
     "pytest>=8.4.0",
     "pytest-cov>=6.1.1",
 ]
