@@ -29,6 +29,7 @@ vis = [
     "watchdog>=6.0.0",
 ]
 dev = [
+    "pypdf>=5.1.0",
     "pytest>=8.4.0",
     "pytest-cov>=6.1.1",
 ]

@@ -4,11 +4,19 @@ from fpdf import FPDF
 
 from pr_pro.program import Program
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
+from pr_pro.workout_session import WorkoutSession
+
+PAGE_WIDTH_MM = 210.0
+A4_HEIGHT_MM = 297.0
+# PDF coordinates max out at 14400 pt (200 in); stay well under when measuring.
+MAX_PAGE_HEIGHT_MM = 4000.0
+# Keeps a snug page from tripping the mid-table page-break checks.
+PAGE_HEIGHT_SLACK_MM = 5.0
 
 
 class WorkoutPDF(FPDF):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page_format: str | tuple[float, float] = 'A4'):
+        super().__init__(format=page_format)
         self.set_auto_page_break(auto=True, margin=15)
 
     def header(self):
@@ -49,6 +57,14 @@ class WorkoutPDF(FPDF):
         font_style = 'B' if bold else ''
         self.set_font('Arial', font_style, 11)
         self.cell(0, 8, text, 0, 1, 'L')
+
+    def add_session_link(self, label: str, link: int, indent: float = 0.0) -> None:
+        """Write one clickable overview row that jumps to that session's page."""
+        self.set_font('Arial', 'U', 11)
+        self.set_text_color(0, 0, 200)
+        self.set_x(self.l_margin + indent)
+        self.cell(0, 7, label, 0, 1, 'L', link=link)
+        self.set_text_color(0, 0, 0)
 
     def add_paragraph(self, text: str):
         self.set_font('Arial', '', 11)
@@ -160,6 +176,141 @@ class WorkoutPDF(FPDF):
         self.ln(3)
 
 
+def _render_session(pdf: WorkoutPDF, session: WorkoutSession) -> None:
+    """Render one session's heading, stats and components at the current cursor."""
+    pdf.add_heading(f'Session: {session.id}', level=2)
+
+    if session.notes:
+        pdf.add_text(f'Notes: {session.notes}')
+        pdf.ln(1)
+
+    # Session stats
+    pdf.add_text(
+        f'Exercises: {session.get_number_of_exercises()}, Sets: {session.get_number_of_sets()}'
+    )
+    pdf.ln(2)
+
+    # Components
+    for component in session.workout_components:
+        if isinstance(component, SingleExercise):
+            # Convert sets to dict format for table
+            sets_data = []
+            for workout_set in component.sets:
+                set_dict = workout_set.model_dump()
+                # Filter out None values and rest_between
+                set_dict = {
+                    k: v for k, v in set_dict.items() if v is not None and k != 'rest_between'
+                }
+                sets_data.append(set_dict)
+
+            # Use full page width for single exercises
+            full_width = pdf.w - 2 * pdf.l_margin
+            pdf.add_exercise_table(component.exercise.name, sets_data, table_width=full_width)
+
+            # Add notes underneath if provided
+            if component.notes:
+                pdf.set_font('Arial', 'I', 10)
+                pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
+
+            pdf.ln(2)
+
+        elif isinstance(component, ExerciseGroup):
+            group_title = ' + '.join([ex.name for ex in component.exercises])
+            pdf.add_heading(group_title, level=3)
+
+            # Add group notes underneath if provided
+            if component.notes:
+                pdf.set_font('Arial', 'I', 10)
+                pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
+                pdf.ln(1)
+
+            # For exercise groups with 2 exercises, place side by side
+            if len(component.exercises) <= 3:
+                # Collect sets data for each exercise individually (no unified columns)
+                all_sets_data = {}
+
+                for exercise in component.exercises:
+                    sets = component.exercise_sets_dict.get(exercise, [])
+                    sets_data = []
+                    for workout_set in sets:
+                        set_dict = workout_set.model_dump()
+                        set_dict = {
+                            k: v
+                            for k, v in set_dict.items()
+                            if v is not None and k != 'rest_between'
+                        }
+                        sets_data.append(set_dict)
+                    all_sets_data[exercise] = sets_data
+
+                # Estimate table height to check if it fits on current page
+                # Use the exercise with more sets for height estimation
+                max_sets = max(len(data) for data in all_sets_data.values())
+                estimated_table_height = 6 + (max_sets + 1) * 7  # header + data rows
+                current_y = pdf.get_y()
+                page_height = pdf.h - pdf.b_margin
+
+                if current_y + estimated_table_height > page_height:
+                    pdf.add_page()
+
+                # If tables won't fit on current page, start a new page
+                num_ex = len(component.exercises)
+                gap = 6
+                table_width = (pdf.w - 2 * pdf.l_margin - gap * (num_ex - 1)) / num_ex
+                start_y = pdf.get_y()
+
+                bottoms = []
+                for i, exercise in enumerate(component.exercises):
+                    pdf.set_y(start_y)
+                    start_x = pdf.l_margin + i * (table_width + gap)
+                    pdf.add_exercise_table(
+                        exercise.name,
+                        all_sets_data[exercise],
+                        table_width=table_width,
+                        start_x=start_x,
+                        part_of_group=True,
+                    )
+                    bottoms.append(pdf.get_y())
+
+                # Move to bottom of both tables
+                pdf.set_y(max(bottoms))
+            else:
+                # For other cases, stack vertically
+                for exercise in component.exercises:
+                    sets = component.exercise_sets_dict.get(exercise, [])
+                    sets_data = []
+                    for workout_set in sets:
+                        set_dict = workout_set.model_dump()
+                        set_dict = {
+                            k: v
+                            for k, v in set_dict.items()
+                            if v is not None and k != 'rest_between'
+                        }
+                        sets_data.append(set_dict)
+
+                    full_width = pdf.w - 2 * pdf.l_margin
+                    pdf.add_exercise_table(exercise.name, sets_data, table_width=full_width)
+                    pdf.ln(1)
+
+            pdf.ln(2)
+
+
+def _overview_label(session: WorkoutSession) -> str:
+    parts = [session.id]
+    if session.notes:
+        parts.append(session.notes)
+    return '  -  '.join(parts)
+
+
+def _session_height(session: WorkoutSession) -> float:
+    """Render the session onto an oversized scratch page to learn how tall it is."""
+    scratch = WorkoutPDF(page_format=(PAGE_WIDTH_MM, MAX_PAGE_HEIGHT_MM))
+    scratch.set_auto_page_break(auto=False)
+    scratch.add_page()
+    top = scratch.get_y()
+    _render_session(scratch, session)
+    return scratch.get_y() - top
+
+
 def export_program_to_pdf(program: Program, output_path: Path) -> None:
     """Export a workout program to PDF format"""
     pdf = WorkoutPDF()
@@ -170,141 +321,39 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
 
     # Best exercise values section
     if program.best_exercise_values:
-        pdf.add_heading('Best Exercise Values', level=1)
+        pdf.add_heading('Best Exercise Values / 1RM', level=1)
         for exercise, value in program.best_exercise_values.items():
             pdf.add_text(f'{exercise.name}: {value} kg', bold=False)
-        pdf.ln(2)
-
-    # Program phases (if any)
-    if program.program_phases:
-        pdf.add_heading('Program Phases', level=1)
-        for phase_name, session_ids in program.program_phases.items():
-            pdf.add_text(f'{phase_name}: {", ".join(session_ids)}', bold=True)
         pdf.ln(2)
 
     # Workout sessions
     pdf.add_heading('Workout Sessions', level=1)
 
+    # One clickable row per session, grouped under the phase it belongs to. The targets
+    # are empty until the session pages below are added, which is where they get resolved.
+    links = {session_id: pdf.add_link() for session_id in program.workout_session_dict}
+
+    phased: set[str] = set()
+    for phase_name, session_ids in program.program_phases.items():
+        pdf.add_text(phase_name, bold=True)
+        for session_id in session_ids:
+            session = program.workout_session_dict[session_id]
+            pdf.add_session_link(_overview_label(session), links[session_id], indent=5)
+            phased.add(session_id)
+        pdf.ln(1)
+
+    # Sessions outside any phase, which is every session when no phases are defined.
+    for session_id, session in program.workout_session_dict.items():
+        if session_id not in phased:
+            pdf.add_session_link(_overview_label(session), links[session_id])
+    pdf.ln(2)
+
     for session in program.workout_session_dict.values():
-        pdf.add_heading(f'Session: {session.id}', level=2)
-
-        if session.notes:
-            pdf.add_text(f'Notes: {session.notes}')
-            pdf.ln(1)
-
-        # Session stats
-        pdf.add_text(
-            f'Exercises: {session.get_number_of_exercises()}, Sets: {session.get_number_of_sets()}'
-        )
-        pdf.ln(2)
-
-        # Components
-        for component in session.workout_components:
-            if isinstance(component, SingleExercise):
-                # Convert sets to dict format for table
-                sets_data = []
-                for workout_set in component.sets:
-                    set_dict = workout_set.model_dump()
-                    # Filter out None values and rest_between
-                    set_dict = {
-                        k: v for k, v in set_dict.items() if v is not None and k != 'rest_between'
-                    }
-                    sets_data.append(set_dict)
-
-                # Use full page width for single exercises
-                full_width = pdf.w - 2 * pdf.l_margin
-                pdf.add_exercise_table(component.exercise.name, sets_data, table_width=full_width)
-
-                # Add notes underneath if provided
-                if component.notes:
-                    pdf.set_font('Arial', 'I', 10)
-                    pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
-
-                pdf.ln(2)
-
-            elif isinstance(component, ExerciseGroup):
-                group_title = ' + '.join([ex.name for ex in component.exercises])
-                pdf.add_heading(group_title, level=3)
-
-                # Add group notes underneath if provided
-                if component.notes:
-                    pdf.set_font('Arial', 'I', 10)
-                    pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
-                    pdf.ln(1)
-
-                # For exercise groups with 2 exercises, place side by side
-                if len(component.exercises) <= 3:
-                    # Collect sets data for each exercise individually (no unified columns)
-                    all_sets_data = {}
-
-                    for exercise in component.exercises:
-                        sets = component.exercise_sets_dict.get(exercise, [])
-                        sets_data = []
-                        for workout_set in sets:
-                            set_dict = workout_set.model_dump()
-                            set_dict = {
-                                k: v
-                                for k, v in set_dict.items()
-                                if v is not None and k != 'rest_between'
-                            }
-                            sets_data.append(set_dict)
-                        all_sets_data[exercise] = sets_data
-
-                    # Estimate table height to check if it fits on current page
-                    # Use the exercise with more sets for height estimation
-                    max_sets = max(len(data) for data in all_sets_data.values())
-                    estimated_table_height = 6 + (max_sets + 1) * 7  # header + data rows
-                    current_y = pdf.get_y()
-                    page_height = pdf.h - pdf.b_margin
-
-                    if current_y + estimated_table_height > page_height:
-                        pdf.add_page()
-
-                    # If tables won't fit on current page, start a new page
-                    num_ex = len(component.exercises)
-                    gap = 6
-                    table_width = (pdf.w - 2 * pdf.l_margin - gap * (num_ex - 1)) / num_ex
-                    start_y = pdf.get_y()
-
-                    bottoms = []
-                    for i, exercise in enumerate(component.exercises):
-                        pdf.set_y(start_y)
-                        start_x = pdf.l_margin + i * (table_width + gap)
-                        pdf.add_exercise_table(
-                            exercise.name,
-                            all_sets_data[exercise],
-                            table_width=table_width,
-                            start_x=start_x,
-                            part_of_group=True,
-                        )
-                        bottoms.append(pdf.get_y())
-
-                    # Move to bottom of both tables
-                    pdf.set_y(max(bottoms))
-                else:
-                    # For other cases, stack vertically
-                    for exercise in component.exercises:
-                        sets = component.exercise_sets_dict.get(exercise, [])
-                        sets_data = []
-                        for workout_set in sets:
-                            set_dict = workout_set.model_dump()
-                            set_dict = {
-                                k: v
-                                for k, v in set_dict.items()
-                                if v is not None and k != 'rest_between'
-                            }
-                            sets_data.append(set_dict)
-
-                        full_width = pdf.w - 2 * pdf.l_margin
-                        pdf.add_exercise_table(exercise.name, sets_data, table_width=full_width)
-                        pdf.ln(1)
-
-                pdf.ln(2)
-
-        # Add page break between sessions if not the last one
-        # session_ids = list(program.workout_session_dict.keys())
-        # if session_id != session_ids[-1]:
-        #     pdf.add_page()
+        content = _session_height(session)
+        height = pdf.t_margin + content + pdf.b_margin + PAGE_HEIGHT_SLACK_MM
+        pdf.add_page(format=(PAGE_WIDTH_MM, max(height, A4_HEIGHT_MM)))
+        pdf.set_link(links[session.id], page=pdf.page_no())
+        _render_session(pdf, session)
 
     # Save the PDF
     pdf.output(str(output_path))
