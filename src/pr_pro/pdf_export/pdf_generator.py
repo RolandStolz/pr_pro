@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -11,7 +12,6 @@ from pr_pro.workout_component import ExerciseGroup, SingleExercise
 from pr_pro.workout_session import WorkoutSession
 
 PAGE_WIDTH_MM = 210.0
-A4_HEIGHT_MM = 297.0
 # PDF coordinates max out at 14400 pt (200 in); stay well under when measuring.
 MAX_PAGE_HEIGHT_MM = 4000.0
 # Keeps a snug page from tripping the mid-table page-break checks.
@@ -39,16 +39,8 @@ GROUP_GAP_MM = 8.0
 class WorkoutPDF(FPDF):
     def __init__(self, page_format: str | tuple[float, float] = 'A4'):
         super().__init__(format=page_format)
-        self.set_auto_page_break(auto=True, margin=15)
-
-    def header(self):
-        # Logo or header content could go here
-        pass
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+        # No footer, so the bottom margin can match the top one.
+        self.set_auto_page_break(auto=True, margin=self.t_margin)
 
     def add_title(self, title: str):
         self.set_font('Arial', 'B', 20)
@@ -281,37 +273,33 @@ def _overview_label(session: WorkoutSession) -> str:
     return '  -  '.join(parts)
 
 
-def _session_height(session: WorkoutSession) -> float:
-    """Render the session onto an oversized scratch page to learn how tall it is."""
+def _content_height(render: Callable[[WorkoutPDF], None]) -> float:
+    """Run the drawing onto an oversized scratch page to learn how tall it is."""
     scratch = WorkoutPDF(page_format=(PAGE_WIDTH_MM, MAX_PAGE_HEIGHT_MM))
     scratch.set_auto_page_break(auto=False)
     scratch.add_page()
     top = scratch.get_y()
-    _render_session(scratch, session)
+    render(scratch)
     return scratch.get_y() - top
 
 
-def export_program_to_pdf(program: Program, output_path: Path) -> None:
-    """Export a workout program to PDF format"""
-    pdf = WorkoutPDF()
-    pdf.add_page()
+def _add_fitted_page(pdf: WorkoutPDF, content_height: float) -> None:
+    """Start a page just tall enough for that much content, plus the margins."""
+    height = pdf.t_margin + content_height + pdf.b_margin + PAGE_HEIGHT_SLACK_MM
+    pdf.add_page(format=(PAGE_WIDTH_MM, height))
 
-    # Title
+
+def _render_overview(pdf: WorkoutPDF, program: Program, links: dict[str, int]) -> None:
+    """Title, best values, and one clickable row per session grouped by phase."""
     pdf.add_title(program.name)
 
-    # Best exercise values section
     if program.best_exercise_values:
         pdf.add_heading('Best Exercise Values / 1RM', level=1)
         for exercise, value in program.best_exercise_values.items():
             pdf.add_text(f'{exercise.name}: {value:g} kg', bold=False)
         pdf.ln(2)
 
-    # Workout sessions
     pdf.add_heading('Workout Sessions', level=1)
-
-    # One clickable row per session, grouped under the phase it belongs to. The targets
-    # are empty until the session pages below are added, which is where they get resolved.
-    links = {session_id: pdf.add_link() for session_id in program.workout_session_dict}
 
     phased: set[str] = set()
     for phase_name, session_ids in program.program_phases.items():
@@ -326,12 +314,30 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
     for session_id, session in program.workout_session_dict.items():
         if session_id not in phased:
             pdf.add_session_link(_overview_label(session), links[session_id])
-    pdf.ln(2)
+
+
+def export_program_to_pdf(program: Program, output_path: Path) -> None:
+    """Export a workout program to PDF format"""
+    pdf = WorkoutPDF()
+
+    # add_link() binds to the current page, so every link is made after a page exists:
+    # throwaway ones in the scratch pass, the real ones once page 1 is open. Their
+    # targets stay empty until the session pages are added further down.
+    _add_fitted_page(
+        pdf,
+        _content_height(
+            lambda scratch: _render_overview(
+                scratch,
+                program,
+                {session_id: scratch.add_link() for session_id in program.workout_session_dict},
+            )
+        ),
+    )
+    links = {session_id: pdf.add_link() for session_id in program.workout_session_dict}
+    _render_overview(pdf, program, links)
 
     for session_id, session in program.workout_session_dict.items():
-        content = _session_height(session)
-        height = pdf.t_margin + content + pdf.b_margin + PAGE_HEIGHT_SLACK_MM
-        pdf.add_page(format=(PAGE_WIDTH_MM, max(height, A4_HEIGHT_MM)))
+        _add_fitted_page(pdf, _content_height(lambda scratch: _render_session(scratch, session)))
         pdf.set_link(links[session_id], page=pdf.page_no())
         _render_session(pdf, session)
 
