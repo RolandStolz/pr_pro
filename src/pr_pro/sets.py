@@ -152,12 +152,21 @@ class DurationSet(WorkingSet):
 WorkingSet_t = RepsSet | RepsRPESet | RepsAndWeightsSet | PowerExerciseSet | DurationSet
 
 
+def format_duration(d: datetime.timedelta) -> str:
+    """Render a timedelta as M:SS, or H:MM:SS once it reaches an hour."""
+    hours, remainder = divmod(int(d.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f'{hours}:{minutes:02d}:{seconds:02d}'
+    return f'{minutes}:{seconds:02d}'
+
+
 MetricConfig = tuple[str, str, Callable[[Any], Any] | None]
 
 METRIC_CONFIGS: dict[type[WorkingSet_t], list[MetricConfig]] = {
     RepsAndWeightsSet: [
         ('reps', 'Reps', None),
-        ('weight', 'Weight (kg)', lambda w: f'{round(w, 1)}'),
+        ('weight', 'Weight', lambda w: f'{round(w, 1):g}'),
         ('percentage', 'Abs %', lambda p: f'{p * 100:.0f}%'),
         ('relative_percentage', 'Rel %', lambda rp: f'{rp * 100:.0f}%'),
     ],
@@ -167,18 +176,14 @@ METRIC_CONFIGS: dict[type[WorkingSet_t], list[MetricConfig]] = {
     ],
     PowerExerciseSet: [
         ('reps', 'Reps', None),
-        ('weight', 'Weight (kg)', lambda w: f'{round(w, 1)}'),
+        ('weight', 'Weight', lambda w: f'{round(w, 1):g}'),
         ('percentage', 'Abs %', lambda p: f'{p * 100:.0f}%'),
     ],
     RepsSet: [
         ('reps', 'Reps', None),
     ],
     DurationSet: [
-        (
-            'duration',
-            'Duration',
-            lambda d: d.strftime('%M:%S') if hasattr(d, 'strftime') else str(d),
-        ),
+        ('duration', 'Duration', format_duration),
     ],
 }
 
@@ -247,7 +252,8 @@ def create_sets_dataframe(_sets: list[WorkingSet_t]) -> pd.DataFrame:
     df = df[cols]
 
     if first_set.rest_between is not None:
-        rest_times = [getattr(s, 'rest_between', None) for s in _sets]
-        df['Rest'] = rest_times
+        df['Rest'] = [
+            format_duration(s.rest_between) if s.rest_between is not None else '' for s in _sets
+        ]
 
     return df

@@ -1,8 +1,12 @@
+from contextlib import contextmanager
 from pathlib import Path
 
 from fpdf import FPDF
+from fpdf.enums import TableBordersLayout
+from fpdf.fonts import FontFace
 
 from pr_pro.program import Program
+from pr_pro.sets import WorkingSet_t, create_sets_dataframe
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
 from pr_pro.workout_session import WorkoutSession
 
@@ -12,6 +16,24 @@ A4_HEIGHT_MM = 297.0
 MAX_PAGE_HEIGHT_MM = 4000.0
 # Keeps a snug page from tripping the mid-table page-break checks.
 PAGE_HEIGHT_SLACK_MM = 5.0
+
+MUTED_TEXT = (107, 114, 128)
+TABLE_FONT_SIZE_PT = 9
+# Booktabs-style rules: heavier above the headings and below the last row,
+# hairline in between.
+RULE_WIDTH_MM = 0.4
+THIN_RULE_WIDTH_MM = 0.15
+# Horizontal breathing room added to the widest string in a column. The slack covers
+# the border line width, which fpdf2 takes out of the cell's text area.
+COL_PADDING_MM = 2.0
+COL_SLACK_MM = 1.0
+# Floor for narrow columns such as 'Set', so they do not look cramped next to
+# wider ones. Raise it to even the columns out, drop it to 0 to fit contents only.
+MIN_COL_WIDTH_MM = 17.0
+# Row height is the line height plus the vertical padding above and below it.
+ROW_LINE_HEIGHT_MM = 3.6
+ROW_PADDING_MM = 0.8
+GROUP_GAP_MM = 8.0
 
 
 class WorkoutPDF(FPDF):
@@ -88,92 +110,117 @@ class WorkoutPDF(FPDF):
         self.ln(2)
 
     def add_exercise_table(
-        self, exercise_name, sets_data, table_width=None, start_x=None, part_of_group=False
-    ):
-        """Add a table for an exercise with its sets."""
-        if table_width is None:
-            table_width = self.w - 2 * self.l_margin
+        self,
+        exercise_name: str,
+        sets: list[WorkingSet_t],
+        part_of_group: bool = False,
+    ) -> None:
+        """Draw one exercise's sets as a booktabs-style table: no fills, no vertical
+        rules, columns only as wide as their contents. Columns and value formatting
+        come from create_sets_dataframe, shared with the Streamlit view."""
+        df = create_sets_dataframe(sets)
+        if df.empty:
+            return
 
-        if start_x is None:
-            start_x = self.l_margin
+        col_widths = _column_widths(self, df)
+        width = min(sum(col_widths), self.epw)
 
-        # Collect columns from the actual sets data (exercise-specific)
-        column_names = set()
-        for set_dict in sets_data:
-            column_names.update(set_dict.keys())
-
-        # Enforce ordering with reps first
-        ordered_columns = []
-        if 'reps' in column_names:
-            ordered_columns.append('reps')
-            column_names.remove('reps')
-
-        # Add remaining columns in sorted order
-        ordered_columns.extend(sorted(column_names))
-        column_names = ordered_columns
-
-        display_column_names = []
-        for col in column_names:
-            if col == 'percentage':
-                display_column_names.append('Abs %')
-            elif col == 'relative_percentage':
-                display_column_names.append('Rel %')
-            else:
-                display_column_names.append(col.replace('_', ' ').title())
-
-        # Calculate column width
-        col_width = table_width / len(column_names)
-
-        # Check if we need a new page for the table header + at least one row
-        # min_height_needed = 8 + 2 + 6 + 6  # title + spacing + header + one data row
-        # if self.get_y() + min_height_needed > self.h - self.b_margin:
-        #     self.add_page()
-
-        # Exercise name header
         if part_of_group:
             self.set_font('Arial', 'B', 10)
-            self.set_x(start_x)
-            self.cell(table_width, 8, exercise_name, 0, 1, 'L')
-            self.ln(1)
+            self.cell(0, 7, exercise_name, 0, 1, 'L')
         else:
             self.add_heading(exercise_name, 3)
-            self.ln(2)
 
-        # Table header
-        self.set_font('Arial', 'B', 10)
-        self.set_x(start_x)
+        self.set_font('Arial', '', TABLE_FONT_SIZE_PT)
+        self.set_draw_color(0)
+        self.set_line_width(THIN_RULE_WIDTH_MM)
 
-        for display_col in display_column_names:
-            self.cell(col_width, 6, display_col, 1, 0, 'C')
-        self.ln()
+        left = self.l_margin
+        top = self.get_y()
+        with self.table(
+            align='LEFT',
+            width=width,
+            col_widths=col_widths,
+            borders_layout=TableBordersLayout.SINGLE_TOP_LINE,
+            headings_style=FontFace(emphasis='BOLD'),
+            text_align='CENTER',
+            line_height=ROW_LINE_HEIGHT_MM,
+            padding=(ROW_PADDING_MM, COL_PADDING_MM),
+        ) as table:
+            header = table.row()
+            for heading in df.columns:
+                header.cell(str(heading))
+            for values in df.itertuples(index=False):
+                row = table.row()
+                for value in values:
+                    row.cell('' if value is None else str(value))
 
-        # Table data
-        self.set_font('Arial', '', 10)
-        for set_dict in sets_data:
-            # Check if we need a new page for this row
-            if self.get_y() + 6 > self.h - self.b_margin:
-                self.add_page()
-                # Redraw header on new page
-                self.set_font('Arial', 'B', 10)
-                self.set_x(start_x)
-                for display_col in display_column_names:
-                    self.cell(col_width, 6, display_col, 1, 0, 'C')
-                self.ln()
-                self.set_font('Arial', '', 10)
+        # SINGLE_TOP_LINE only rules under the headings; booktabs also wants a rule
+        # above them and one closing the table.
+        self.set_line_width(RULE_WIDTH_MM)
+        self.line(left, top, left + width, top)
+        self.line(left, self.get_y(), left + width, self.get_y())
+        self.set_line_width(THIN_RULE_WIDTH_MM)
+        self.ln(2)
 
-            self.set_x(start_x)
-            for col in column_names:
-                value = set_dict.get(col, '')
-                if isinstance(value, float):
-                    # value = f'{value:.1f}'
-                    # value = f'{value}'
-                    # Check if value is decimal
-                    value = round(value, 3)
+    def add_note(self, note: str, indent: float = 0.0) -> None:
+        """Italic, muted note line under an exercise or group."""
+        self.set_font('Arial', 'I', 9)
+        self.set_text_color(*MUTED_TEXT)
+        self.set_x(self.l_margin + indent)
+        self.cell(0, 5, note, 0, 1, 'L')
+        self.set_text_color(0)
 
-                self.cell(col_width, 6, str(value), 1, 0, 'C')
-            self.ln()
 
-        self.ln(3)
+def _column_widths(pdf: WorkoutPDF, df) -> list[float]:
+    """Width each column needs for its widest entry, headings included."""
+    widths = []
+    for column in df.columns:
+        pdf.set_font('Arial', 'B', TABLE_FONT_SIZE_PT)
+        widest = pdf.get_string_width(str(column))
+        pdf.set_font('Arial', '', TABLE_FONT_SIZE_PT)
+        for value in df[column]:
+            widest = max(widest, pdf.get_string_width(str(value)))
+        content_width = widest + 2 * COL_PADDING_MM + COL_SLACK_MM
+        widths.append(max(content_width, MIN_COL_WIDTH_MM))
+    return widths
+
+
+def _side_by_side_slots(
+    pdf: WorkoutPDF,
+    sets_per_exercise: list[tuple[object, list[WorkingSet_t]]],
+    usable_width: float,
+) -> list[float] | None:
+    """Column widths for laying a group's tables out in a row, or None to stack them.
+
+    Tables are already at their content width, so there is nothing to squeeze: they
+    either fit beside each other or they do not.
+    """
+    slots = []
+    for exercise, sets in sets_per_exercise:
+        df = create_sets_dataframe(sets)
+        if df.empty:
+            return None
+        pdf.set_font('Arial', 'B', 10)
+        name_width = pdf.get_string_width(exercise.name) + COL_PADDING_MM
+        slots.append(max(sum(_column_widths(pdf, df)), name_width))
+
+    if sum(slots) + GROUP_GAP_MM * (len(slots) - 1) > usable_width:
+        return None
+    return slots
+
+
+@contextmanager
+def _column(pdf: WorkoutPDF, left: float, width: float):
+    """Temporarily narrow the margins so a table renders inside one column slot."""
+    saved = (pdf.l_margin, pdf.r_margin)
+    pdf.l_margin, pdf.r_margin = left, pdf.w - (left + width)
+    pdf.set_x(left)
+    try:
+        yield
+    finally:
+        pdf.l_margin, pdf.r_margin = saved
+        pdf.set_x(pdf.l_margin)
 
 
 def _render_session(pdf: WorkoutPDF, session: WorkoutSession) -> None:
@@ -181,115 +228,48 @@ def _render_session(pdf: WorkoutPDF, session: WorkoutSession) -> None:
     pdf.add_heading(f'Session: {session.id}', level=2)
 
     if session.notes:
-        pdf.add_text(f'Notes: {session.notes}')
-        pdf.ln(1)
-
-    # Session stats
-    pdf.add_text(
-        f'Exercises: {session.get_number_of_exercises()}, Sets: {session.get_number_of_sets()}'
+        pdf.add_note(session.notes)
+    pdf.add_note(
+        f'{session.get_number_of_exercises()} exercises  -  {session.get_number_of_sets()} sets'
     )
     pdf.ln(2)
 
-    # Components
+    usable_width = pdf.w - 2 * pdf.l_margin
+
     for component in session.workout_components:
         if isinstance(component, SingleExercise):
-            # Convert sets to dict format for table
-            sets_data = []
-            for workout_set in component.sets:
-                set_dict = workout_set.model_dump()
-                # Filter out None values and rest_between
-                set_dict = {
-                    k: v for k, v in set_dict.items() if v is not None and k != 'rest_between'
-                }
-                sets_data.append(set_dict)
-
-            # Use full page width for single exercises
-            full_width = pdf.w - 2 * pdf.l_margin
-            pdf.add_exercise_table(component.exercise.name, sets_data, table_width=full_width)
-
-            # Add notes underneath if provided
+            pdf.add_exercise_table(component.exercise.name, component.sets)
             if component.notes:
-                pdf.set_font('Arial', 'I', 10)
-                pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
-
+                pdf.add_note(component.notes)
             pdf.ln(2)
 
         elif isinstance(component, ExerciseGroup):
-            group_title = ' + '.join([ex.name for ex in component.exercises])
-            pdf.add_heading(group_title, level=3)
-
-            # Add group notes underneath if provided
+            pdf.add_heading(' + '.join(ex.name for ex in component.exercises), level=3)
             if component.notes:
-                pdf.set_font('Arial', 'I', 10)
-                pdf.cell(0, 6, f'Notes: {component.notes}', 0, 1, 'L')
+                pdf.add_note(component.notes)
                 pdf.ln(1)
 
-            # For exercise groups with 2 exercises, place side by side
-            if len(component.exercises) <= 3:
-                # Collect sets data for each exercise individually (no unified columns)
-                all_sets_data = {}
+            sets_per_exercise = [
+                (exercise, component.exercise_sets_dict.get(exercise, []))
+                for exercise in component.exercises
+            ]
+            slots = _side_by_side_slots(pdf, sets_per_exercise, usable_width)
 
-                for exercise in component.exercises:
-                    sets = component.exercise_sets_dict.get(exercise, [])
-                    sets_data = []
-                    for workout_set in sets:
-                        set_dict = workout_set.model_dump()
-                        set_dict = {
-                            k: v
-                            for k, v in set_dict.items()
-                            if v is not None and k != 'rest_between'
-                        }
-                        sets_data.append(set_dict)
-                    all_sets_data[exercise] = sets_data
-
-                # Estimate table height to check if it fits on current page
-                # Use the exercise with more sets for height estimation
-                max_sets = max(len(data) for data in all_sets_data.values())
-                estimated_table_height = 6 + (max_sets + 1) * 7  # header + data rows
-                current_y = pdf.get_y()
-                page_height = pdf.h - pdf.b_margin
-
-                if current_y + estimated_table_height > page_height:
-                    pdf.add_page()
-
-                # If tables won't fit on current page, start a new page
-                num_ex = len(component.exercises)
-                gap = 6
-                table_width = (pdf.w - 2 * pdf.l_margin - gap * (num_ex - 1)) / num_ex
-                start_y = pdf.get_y()
-
-                bottoms = []
-                for i, exercise in enumerate(component.exercises):
-                    pdf.set_y(start_y)
-                    start_x = pdf.l_margin + i * (table_width + gap)
-                    pdf.add_exercise_table(
-                        exercise.name,
-                        all_sets_data[exercise],
-                        table_width=table_width,
-                        start_x=start_x,
-                        part_of_group=True,
-                    )
-                    bottoms.append(pdf.get_y())
-
-                # Move to bottom of both tables
-                pdf.set_y(max(bottoms))
-            else:
-                # For other cases, stack vertically
-                for exercise in component.exercises:
-                    sets = component.exercise_sets_dict.get(exercise, [])
-                    sets_data = []
-                    for workout_set in sets:
-                        set_dict = workout_set.model_dump()
-                        set_dict = {
-                            k: v
-                            for k, v in set_dict.items()
-                            if v is not None and k != 'rest_between'
-                        }
-                        sets_data.append(set_dict)
-
-                    full_width = pdf.w - 2 * pdf.l_margin
-                    pdf.add_exercise_table(exercise.name, sets_data, table_width=full_width)
+            if slots is None:
+                for exercise, sets in sets_per_exercise:
+                    pdf.add_exercise_table(exercise.name, sets, part_of_group=True)
                     pdf.ln(1)
+            else:
+                top = pdf.get_y()
+                left = pdf.l_margin
+                bottoms = []
+                for (exercise, sets), slot in zip(sets_per_exercise, slots):
+                    pdf.set_y(top)
+                    with _column(pdf, left, slot):
+                        pdf.add_exercise_table(exercise.name, sets, part_of_group=True)
+                    bottoms.append(pdf.get_y())
+                    left += slot + GROUP_GAP_MM
+                pdf.set_y(max(bottoms))
 
             pdf.ln(2)
 
@@ -323,7 +303,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
     if program.best_exercise_values:
         pdf.add_heading('Best Exercise Values / 1RM', level=1)
         for exercise, value in program.best_exercise_values.items():
-            pdf.add_text(f'{exercise.name}: {value} kg', bold=False)
+            pdf.add_text(f'{exercise.name}: {value:g} kg', bold=False)
         pdf.ln(2)
 
     # Workout sessions
@@ -348,11 +328,11 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
             pdf.add_session_link(_overview_label(session), links[session_id])
     pdf.ln(2)
 
-    for session in program.workout_session_dict.values():
+    for session_id, session in program.workout_session_dict.items():
         content = _session_height(session)
         height = pdf.t_margin + content + pdf.b_margin + PAGE_HEIGHT_SLACK_MM
         pdf.add_page(format=(PAGE_WIDTH_MM, max(height, A4_HEIGHT_MM)))
-        pdf.set_link(links[session.id], page=pdf.page_no())
+        pdf.set_link(links[session_id], page=pdf.page_no())
         _render_session(pdf, session)
 
     # Save the PDF
