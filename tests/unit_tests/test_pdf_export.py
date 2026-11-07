@@ -104,6 +104,62 @@ def test_exclude_metrics_rejects_unknown_name():
     program = get_example_program()
     program.compute_values(ComputeConfig(one_rm_calculator=Brzycki1RMCalculator()))
 
+    with (
+        tempfile.TemporaryDirectory() as temp_dir,
+        pytest.raises(ValueError, match='rel_percentage'),
+    ):
+        program.export_to_pdf(Path(temp_dir) / 'x.pdf', exclude_metrics=['rel_percentage'])
+
+
+def test_notes_field_is_fillable_and_off_by_default():
+    """notes_field turns each component's note into a savable text field."""
+    from pypdf import PdfReader, PdfWriter
+
+    program = get_example_program()
+    program.compute_values(ComputeConfig(one_rm_calculator=Brzycki1RMCalculator()))
+    components = sum(len(s.workout_components) for s in program.workout_session_dict.values())
+
     with tempfile.TemporaryDirectory() as temp_dir:
-        with pytest.raises(ValueError, match='rel_percentage'):
-            program.export_to_pdf(Path(temp_dir) / 'x.pdf', exclude_metrics=['rel_percentage'])
+        plain = Path(temp_dir) / 'plain.pdf'
+        with_fields = Path(temp_dir) / 'fields.pdf'
+        program.export_to_pdf(plain)
+        program.export_to_pdf(with_fields, notes_field=True)
+
+        assert PdfReader(plain).get_fields() is None
+
+        fields = PdfReader(with_fields).get_form_text_fields()
+        # One per workout component, whether or not it already has a note.
+        assert len(fields) == components
+
+        session = next(iter(program.workout_session_dict.values()))
+        noted = {
+            f'notes_{session.id}_{i}': c.notes
+            for i, c in enumerate(session.workout_components, start=1)
+            if c.notes
+        }
+        assert noted, 'example program should have at least one component note'
+        for name, note in noted.items():
+            assert fields[name] == note
+
+        # Pre-filled values need an appearance stream, or viewers that ignore
+        # NeedAppearances show them blank.
+        for page in PdfReader(with_fields).pages:
+            for annotation in page.get('/Annots', []):
+                obj = annotation.get_object()
+                if obj.get('/FT') == '/Tx' and str(obj.get('/V', '')):
+                    assert '/AP' in obj, f'{obj["/T"]} has no appearance stream'
+
+        # What a reader types and saves has to survive in the file.
+        target = next(iter(noted))
+        writer = PdfWriter(clone_from=with_fields)
+        page_index = next(
+            i
+            for i, page in enumerate(writer.pages)
+            for a in page.get('/Annots', [])
+            if str(a.get_object().get('/T', '')) == target
+        )
+        writer.update_page_form_field_values(writer.pages[page_index], {target: 'felt heavy'})
+        filled = Path(temp_dir) / 'filled.pdf'
+        writer.write(filled)
+
+        assert PdfReader(filled).get_form_text_fields()[target] == 'felt heavy'

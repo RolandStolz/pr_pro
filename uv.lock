@@ -626,6 +626,7 @@ dev = [
 vis = [
     { name = "fpdf2" },
     { name = "matplotlib" },
+    { name = "pypdf" },
     { name = "streamlit" },
     { name = "watchdog" },
 ]
@@ -637,6 +638,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.0" },
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "pypdf", marker = "extra == 'dev'", specifier = ">=5.1.0" },
+    { name = "pypdf", marker = "extra == 'vis'", specifier = ">=5.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.1.1" },
     { name = "streamlit", marker = "extra == 'vis'", specifier = ">=1.45.1" },
