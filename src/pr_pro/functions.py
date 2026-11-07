@@ -74,7 +74,7 @@ class Lombardi1RMCalculator(OneRMCalculator):
 
     @staticmethod
     def max_reps_from_weight(one_rm_weight: float, weight: float) -> float:
-        return one_rm_weight / weight**10
+        return (one_rm_weight / weight) ** 10
 
 
 @dataclass(frozen=True)
@@ -96,15 +96,15 @@ class OConner1RMCalculator(OneRMCalculator):
 class Wathan1RMCalculator(OneRMCalculator):
     @staticmethod
     def one_rep_max(weight: float, reps: float) -> float:
-        return weight * (100 / (48.8 + 53.8 * (reps**-0.075)))
+        return weight * 100 / (48.8 + 53.8 * math.exp(-0.075 * reps))
 
     @staticmethod
     def max_weight_from_reps(one_rm_weight: float, reps: float) -> float:
-        return one_rm_weight * (48.8 + 53.8 * (reps**-0.075)) / 100
+        return one_rm_weight * (48.8 + 53.8 * math.exp(-0.075 * reps)) / 100
 
     @staticmethod
     def max_reps_from_weight(one_rm_weight: float, weight: float) -> float:
-        return -0.075 * (48.8 - 100 * weight / one_rm_weight) ** -1
+        return -math.log((100 * weight / one_rm_weight - 48.8) / 53.8) / 0.075
 
 
 @dataclass(frozen=True)
