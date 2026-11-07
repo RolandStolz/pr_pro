@@ -1,9 +1,17 @@
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from pr_pro.configs import ComputeConfig
 from pr_pro.example import get_example_program, get_simple_example_program
 from pr_pro.functions import Brzycki1RMCalculator
+
+
+def extract_text(path: Path) -> str:
+    from pypdf import PdfReader
+
+    return '\n'.join(page.extract_text() for page in PdfReader(path).pages)
 
 
 def test_pdf_export():
@@ -69,3 +77,33 @@ def test_session_links_target_session_pages():
         assert distinct == list(range(distinct[0], distinct[0] + session_count))
         # Sessions start after the overview, never on it.
         assert distinct[0] > 1
+
+
+def test_exclude_metrics_drops_columns():
+    """Excluded metrics disappear from the tables; the rest are untouched."""
+    program = get_example_program()
+    program.compute_values(ComputeConfig(one_rm_calculator=Brzycki1RMCalculator()))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        full = Path(temp_dir) / 'full.pdf'
+        trimmed = Path(temp_dir) / 'trimmed.pdf'
+        program.export_to_pdf(full)
+        program.export_to_pdf(trimmed, exclude_metrics=['relative_percentage'])
+
+        full_text = extract_text(full)
+        trimmed_text = extract_text(trimmed)
+
+        assert 'Rel %' in full_text
+        assert 'Rel %' not in trimmed_text
+        # The other metrics still render.
+        for heading in ('Set', 'Reps', 'Weight', 'Abs %'):
+            assert heading in trimmed_text
+
+
+def test_exclude_metrics_rejects_unknown_name():
+    program = get_example_program()
+    program.compute_values(ComputeConfig(one_rm_calculator=Brzycki1RMCalculator()))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with pytest.raises(ValueError, match='rel_percentage'):
+            program.export_to_pdf(Path(temp_dir) / 'x.pdf', exclude_metrics=['rel_percentage'])

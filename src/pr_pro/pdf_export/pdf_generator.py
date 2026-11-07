@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from fpdf.enums import TableBordersLayout
 from fpdf.fonts import FontFace
 
 from pr_pro.program import Program
-from pr_pro.sets import WorkingSet_t, create_sets_dataframe
+from pr_pro.sets import METRIC_LABELS, WorkingSet_t, create_sets_dataframe
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
 from pr_pro.workout_session import WorkoutSession
 
@@ -33,14 +33,32 @@ MIN_COL_WIDTH_MM = 17.0
 # Row height is the line height plus the vertical padding above and below it.
 ROW_LINE_HEIGHT_MM = 3.6
 ROW_PADDING_MM = 0.8
+# A table never occupies less than this share of the width available to it; a
+# two-column table would otherwise sit in a stub at the far left.
+MIN_TABLE_WIDTH_FRACTION = 0.5
+# A note belongs to the exercise above it, so it sits close to the heading and
+# keeps a clear gap to the table below.
+NOTE_LIFT_MM = 1.5
+NOTE_GAP_BELOW_MM = 2.0
 GROUP_GAP_MM = 8.0
 
 
 class WorkoutPDF(FPDF):
-    def __init__(self, page_format: str | tuple[float, float] = 'A4'):
+    def __init__(
+        self,
+        page_format: str | tuple[float, float] = 'A4',
+        excluded_columns: frozenset[str] = frozenset(),
+    ):
         super().__init__(format=page_format)
+        self.excluded_columns = excluded_columns
         # No footer, so the bottom margin can match the top one.
         self.set_auto_page_break(auto=True, margin=self.t_margin)
+
+    def sets_dataframe(self, sets: list[WorkingSet_t]):
+        """The shared sets table, minus any metric this export was told to drop."""
+        df = create_sets_dataframe(sets)
+        dropped = [c for c in df.columns if c in self.excluded_columns]
+        return df.drop(columns=dropped) if dropped else df
 
     def add_title(self, title: str):
         self.set_font('Arial', 'B', 20)
@@ -105,23 +123,32 @@ class WorkoutPDF(FPDF):
         self,
         exercise_name: str,
         sets: list[WorkingSet_t],
+        note: str | None = None,
         part_of_group: bool = False,
     ) -> None:
         """Draw one exercise's sets as a booktabs-style table: no fills, no vertical
-        rules, columns only as wide as their contents. Columns and value formatting
-        come from create_sets_dataframe, shared with the Streamlit view."""
-        df = create_sets_dataframe(sets)
+        rules, columns as wide as their contents, with the rules running the full
+        width. Columns and value formatting come from create_sets_dataframe, shared
+        with the Streamlit view."""
+        df = self.sets_dataframe(sets)
         if df.empty:
             return
 
         col_widths = _column_widths(self, df)
-        width = min(sum(col_widths), self.epw)
+        # Below the floor fpdf2 scales the columns up proportionally, so they stay
+        # even with each other.
+        width = min(max(sum(col_widths), self.epw * MIN_TABLE_WIDTH_FRACTION), self.epw)
 
         if part_of_group:
             self.set_font('Arial', 'B', 10)
             self.cell(0, 7, exercise_name, 0, 1, 'L')
         else:
             self.add_heading(exercise_name, 3)
+
+        if note:
+            self.set_y(self.get_y() - NOTE_LIFT_MM)
+            self.add_note(note)
+            self.ln(NOTE_GAP_BELOW_MM)
 
         self.set_font('Arial', '', TABLE_FONT_SIZE_PT)
         self.set_draw_color(0)
@@ -133,9 +160,9 @@ class WorkoutPDF(FPDF):
             align='LEFT',
             width=width,
             col_widths=col_widths,
-            borders_layout=TableBordersLayout.SINGLE_TOP_LINE,
+            borders_layout=TableBordersLayout.NONE,
             headings_style=FontFace(emphasis='BOLD'),
-            text_align='CENTER',
+            text_align='LEFT',
             line_height=ROW_LINE_HEIGHT_MM,
             padding=(ROW_PADDING_MM, COL_PADDING_MM),
         ) as table:
@@ -147,12 +174,15 @@ class WorkoutPDF(FPDF):
                 for value in values:
                     row.cell('' if value is None else str(value))
 
-        # SINGLE_TOP_LINE only rules under the headings; booktabs also wants a rule
-        # above them and one closing the table.
+        # The table draws no rules of its own, so all three are drawn here, spanning
+        # exactly the table's width.
+        right = left + width
+        headings_bottom = top + ROW_LINE_HEIGHT_MM + 2 * ROW_PADDING_MM
         self.set_line_width(RULE_WIDTH_MM)
-        self.line(left, top, left + width, top)
-        self.line(left, self.get_y(), left + width, self.get_y())
+        self.line(left, top, right, top)
+        self.line(left, self.get_y(), right, self.get_y())
         self.set_line_width(THIN_RULE_WIDTH_MM)
+        self.line(left, headings_bottom, right, headings_bottom)
         self.ln(2)
 
     def add_note(self, note: str, indent: float = 0.0) -> None:
@@ -185,19 +215,19 @@ def _side_by_side_slots(
 ) -> list[float] | None:
     """Column widths for laying a group's tables out in a row, or None to stack them.
 
-    Tables are already at their content width, so there is nothing to squeeze: they
-    either fit beside each other or they do not.
+    Each slot is only as wide as its own table, so the tables sit next to each
+    other with just the gap between them rather than spread across the page.
     """
     slots = []
     for exercise, sets in sets_per_exercise:
-        df = create_sets_dataframe(sets)
+        df = pdf.sets_dataframe(sets)
         if df.empty:
             return None
         pdf.set_font('Arial', 'B', 10)
         name_width = pdf.get_string_width(exercise.name) + COL_PADDING_MM
         slots.append(max(sum(_column_widths(pdf, df)), name_width))
 
-    if sum(slots) + GROUP_GAP_MM * (len(slots) - 1) > usable_width:
+    if sum(slots) > usable_width - GROUP_GAP_MM * (len(slots) - 1):
         return None
     return slots
 
@@ -230,9 +260,7 @@ def _render_session(pdf: WorkoutPDF, session: WorkoutSession) -> None:
 
     for component in session.workout_components:
         if isinstance(component, SingleExercise):
-            pdf.add_exercise_table(component.exercise.name, component.sets)
-            if component.notes:
-                pdf.add_note(component.notes)
+            pdf.add_exercise_table(component.exercise.name, component.sets, note=component.notes)
             pdf.ln(2)
 
         elif isinstance(component, ExerciseGroup):
@@ -273,9 +301,15 @@ def _overview_label(session: WorkoutSession) -> str:
     return '  -  '.join(parts)
 
 
-def _content_height(render: Callable[[WorkoutPDF], None]) -> float:
-    """Run the drawing onto an oversized scratch page to learn how tall it is."""
-    scratch = WorkoutPDF(page_format=(PAGE_WIDTH_MM, MAX_PAGE_HEIGHT_MM))
+def _content_height(pdf: WorkoutPDF, render: Callable[[WorkoutPDF], None]) -> float:
+    """Run the drawing onto an oversized scratch page to learn how tall it is.
+
+    The scratch page mirrors the real one's options so the two agree on height.
+    """
+    scratch = WorkoutPDF(
+        page_format=(PAGE_WIDTH_MM, MAX_PAGE_HEIGHT_MM),
+        excluded_columns=pdf.excluded_columns,
+    )
     scratch.set_auto_page_break(auto=False)
     scratch.add_page()
     top = scratch.get_y()
@@ -316,9 +350,25 @@ def _render_overview(pdf: WorkoutPDF, program: Program, links: dict[str, int]) -
             pdf.add_session_link(_overview_label(session), links[session_id])
 
 
-def export_program_to_pdf(program: Program, output_path: Path) -> None:
-    """Export a workout program to PDF format"""
-    pdf = WorkoutPDF()
+def export_program_to_pdf(
+    program: Program,
+    output_path: Path,
+    exclude_metrics: Iterable[str] = (),
+) -> None:
+    """Export a workout program to PDF format.
+
+    exclude_metrics names set fields to leave out of the tables, for example
+    'relative_percentage' or 'rest_between'. Unknown names raise ValueError rather
+    than being ignored, since a typo would otherwise silently keep the column.
+    """
+    exclude_metrics = list(exclude_metrics)
+    unknown = sorted(set(exclude_metrics) - set(METRIC_LABELS))
+    if unknown:
+        raise ValueError(f'Unknown metric(s) {unknown}. Choose from {sorted(METRIC_LABELS)}.')
+
+    pdf = WorkoutPDF(
+        excluded_columns=frozenset(METRIC_LABELS[metric] for metric in exclude_metrics)
+    )
 
     # add_link() binds to the current page, so every link is made after a page exists:
     # throwaway ones in the scratch pass, the real ones once page 1 is open. Their
@@ -326,18 +376,21 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
     _add_fitted_page(
         pdf,
         _content_height(
+            pdf,
             lambda scratch: _render_overview(
                 scratch,
                 program,
                 {session_id: scratch.add_link() for session_id in program.workout_session_dict},
-            )
+            ),
         ),
     )
     links = {session_id: pdf.add_link() for session_id in program.workout_session_dict}
     _render_overview(pdf, program, links)
 
     for session_id, session in program.workout_session_dict.items():
-        _add_fitted_page(pdf, _content_height(lambda scratch: _render_session(scratch, session)))
+        _add_fitted_page(
+            pdf, _content_height(pdf, lambda scratch: _render_session(scratch, session))
+        )
         pdf.set_link(links[session_id], page=pdf.page_no())
         _render_session(pdf, session)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
@@ -65,14 +66,19 @@ class Program(BaseModel):
         with open(file_path, 'w') as f:
             f.write(self.model_dump_json(indent=2))
 
-    def export_to_pdf(self, file_path: Path) -> None:
+    def export_to_pdf(self, file_path: Path, exclude_metrics: Iterable[str] = ()) -> None:
+        """Write the program to a PDF.
+
+        exclude_metrics names set fields to leave out of the tables, for example
+        ('relative_percentage', 'percentage').
+        """
         try:
             from pr_pro.pdf_export import export_program_to_pdf
         except ImportError as e:
             raise ImportError(
                 "PDF export requires additional dependencies. Please install with 'pip install pr_pro[vis]'"
             ) from e
-        export_program_to_pdf(self, file_path)
+        export_program_to_pdf(self, file_path, exclude_metrics=exclude_metrics)
 
     @staticmethod
     def from_json_file(file_path: Path) -> Program:
