@@ -1,9 +1,10 @@
 import pytest
+
+from pr_pro.exercises.common import backsquat, deadlift, pullup
 from pr_pro.workout_session import (
     exercise_group_from_prev_session,
     single_exercise_from_prev_session,
 )
-from pr_pro.exercises.common import backsquat, deadlift, pullup
 
 
 def test_single_exercise_from_prev_session_success(session_a, exercise_component):
@@ -29,7 +30,7 @@ def test_exercise_group_from_prev_session_success(session_a, exercise_group_comp
         session_a, [deadlift, pullup], sets=+1, reps=(+2, +1)
     )
     print(new_group)
-    assert set(ex.name for ex in new_group.exercises) == {'Deadlift', 'Pullup'}
+    assert {ex.name for ex in new_group.exercises} == {'Deadlift', 'Pullup'}
     assert len(new_group.exercise_sets_dict[deadlift]) == 4
     assert new_group.exercise_sets_dict[deadlift][0].reps == 7  # type: ignore
     assert len(new_group.exercise_sets_dict[pullup]) == 4

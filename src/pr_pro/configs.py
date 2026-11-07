@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from pydantic import BaseModel, ConfigDict
+
 from pr_pro.functions import Brzycki1RMCalculator, OneRMCalculator
 
 

@@ -1,6 +1,4 @@
-from pr_pro.exercise import PowerExercise, RepsExercise
-from pr_pro.exercise import RepsAndWeightsExercise
-
+from pr_pro.exercise import PowerExercise, RepsAndWeightsExercise, RepsExercise
 
 pullup = RepsExercise(name='Pullup')
 pushup = RepsExercise(name='Pushup')

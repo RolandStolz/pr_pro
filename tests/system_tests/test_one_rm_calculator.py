@@ -1,14 +1,15 @@
 import pytest
+
 from pr_pro.configs import ComputeConfig
 from pr_pro.functions import (
-    Epley1RMCalculator,
     Brzycki1RMCalculator,
+    Epley1RMCalculator,
     Landers1RMCalculator,
     Lombardi1RMCalculator,
-    OConner1RMCalculator,
-    Wathan1RMCalculator,
     Mayhew1RMCalculator,
+    OConner1RMCalculator,
     OneRMCalculator,
+    Wathan1RMCalculator,
 )
 from pr_pro.program import Program
 

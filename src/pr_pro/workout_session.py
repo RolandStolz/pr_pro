@@ -1,12 +1,10 @@
-from pr_pro.configs import ComputeConfig
-from pr_pro.exercise import Exercise_t
-from pr_pro.workout_component import ExerciseGroup, SingleExercise, WorkoutComponent_t
-
+from typing import Self
 
 from pydantic import BaseModel
 
-
-from typing import Self
+from pr_pro.configs import ComputeConfig
+from pr_pro.exercise import Exercise_t
+from pr_pro.workout_component import ExerciseGroup, SingleExercise, WorkoutComponent_t
 
 
 class WorkoutSession(BaseModel):

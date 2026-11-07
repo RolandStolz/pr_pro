@@ -1,4 +1,5 @@
 import pytest
+
 from pr_pro.configs import ComputeConfig
 from pr_pro.functions import OneRMCalculator
 from pr_pro.sets import PowerExerciseSet, RepsAndWeightsSet

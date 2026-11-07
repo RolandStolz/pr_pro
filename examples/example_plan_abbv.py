@@ -1,9 +1,8 @@
-from pr_pro.workout_session import WorkoutSession
+from pr_pro.abbreviations import EG, SE
+from pr_pro.exercise import DurationExercise, RepsAndWeightsExercise, RepsExercise, RepsRPEExercise
+from pr_pro.exercises.common import backsquat, bench_press, deadlift, pullup, pushup, split_squat
 from pr_pro.program import Program
-from pr_pro.exercise import DurationExercise, RepsExercise
-from pr_pro.exercises.common import backsquat, deadlift, bench_press, split_squat, pullup, pushup
-from pr_pro.exercise import RepsAndWeightsExercise, RepsRPEExercise
-from pr_pro.abbreviations import SE, EG
+from pr_pro.workout_session import WorkoutSession
 
 
 def main():

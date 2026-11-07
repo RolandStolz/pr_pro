@@ -1,10 +1,10 @@
 import pytest
 
 from pr_pro.example import get_example_program, get_simple_example_program
+from pr_pro.exercises.common import backsquat, deadlift, pullup
 from pr_pro.program import Program
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
 from pr_pro.workout_session import WorkoutSession
-from pr_pro.exercises.common import deadlift, pullup, backsquat
 
 
 @pytest.fixture

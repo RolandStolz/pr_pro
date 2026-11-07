@@ -1,7 +1,9 @@
 from pathlib import Path
+
 from fpdf import FPDF
+
 from pr_pro.program import Program
-from pr_pro.workout_component import SingleExercise, ExerciseGroup
+from pr_pro.workout_component import ExerciseGroup, SingleExercise
 
 
 class WorkoutPDF(FPDF):
@@ -183,7 +185,7 @@ def export_program_to_pdf(program: Program, output_path: Path) -> None:
     # Workout sessions
     pdf.add_heading('Workout Sessions', level=1)
 
-    for session_id, session in program.workout_session_dict.items():
+    for session in program.workout_session_dict.values():
         pdf.add_heading(f'Session: {session.id}', level=2)
 
         if session.notes:

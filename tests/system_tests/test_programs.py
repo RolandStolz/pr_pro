@@ -1,8 +1,8 @@
 from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import RepsAndWeightsExercise
+from pr_pro.exercises.common import backsquat, deadlift
 from pr_pro.functions import Brzycki1RMCalculator
 from pr_pro.program import Program
-from pr_pro.exercises.common import backsquat, deadlift
 
 
 def test_simple_plan_creation(simple_example_program: Program):

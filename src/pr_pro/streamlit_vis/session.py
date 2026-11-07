@@ -1,10 +1,11 @@
+import streamlit as st
+
 from pr_pro.streamlit_vis.workout_component import (
     render_exercise_group_component_ui,
     render_single_exercise_component_ui,
 )
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
 from pr_pro.workout_session import WorkoutSession
-import streamlit as st
 
 
 def render_session(session: WorkoutSession, use_persistent_state: bool):
@@ -18,9 +19,9 @@ def render_session(session: WorkoutSession, use_persistent_state: bool):
 
     component_tab_titles = []
     for comp in session.workout_components:
-        if isinstance(comp, SingleExercise):  #
+        if isinstance(comp, SingleExercise):
             component_tab_titles.append(f'{comp.exercise.name}')
-        elif isinstance(comp, ExerciseGroup):  #
+        elif isinstance(comp, ExerciseGroup):
             group_name = ' + '.join([ex.name for ex in comp.exercises])
             component_tab_titles.append(f'{group_name}')
         else:
@@ -30,11 +31,11 @@ def render_session(session: WorkoutSession, use_persistent_state: bool):
         tabs = st.tabs(component_tab_titles)
         for i, component in enumerate(session.workout_components):
             with tabs[i]:
-                if isinstance(component, SingleExercise):  #
+                if isinstance(component, SingleExercise):
                     render_single_exercise_component_ui(
                         component, session=session, use_persistent_state=use_persistent_state
                     )
-                elif isinstance(component, ExerciseGroup):  #
+                elif isinstance(component, ExerciseGroup):
                     render_exercise_group_component_ui(
                         component, session=session, use_persistent_state=use_persistent_state
                     )

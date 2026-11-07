@@ -29,7 +29,9 @@ def run_streamlit_app(program: Program, use_persistent_state: bool = False):
         session_ids = list(program.workout_session_dict.keys())
     else:
         phase = st.pills(
-            'Phases', program.program_phases.keys(), default=list(program.program_phases.keys())[0]
+            'Phases',
+            program.program_phases.keys(),
+            default=next(iter(program.program_phases.keys())),
         )
         session_ids = program.program_phases[phase]  # type: ignore
     if not session_ids:
@@ -51,7 +53,7 @@ def run_streamlit_app(program: Program, use_persistent_state: bool = False):
         phase = st.pills(
             'Phases',
             program.program_phases.keys(),
-            default=list(program.program_phases.keys())[0],
+            default=next(iter(program.program_phases.keys())),
             key='comparison_phase',
         )
         session_ids_remaining = [

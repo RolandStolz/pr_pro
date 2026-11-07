@@ -1,17 +1,18 @@
-from typing import Any, List
+from typing import Any
 
 import pandas as pd
+import streamlit as st
+
 from pr_pro.sets import (
     WorkingSet_t,
     _build_metrics_list,
     _get_metric_config,
     create_sets_dataframe,
 )
-import streamlit as st
 
 
 @st.cache_data
-def st_create_sets_dataframe(_sets: List[WorkingSet_t]) -> pd.DataFrame:
+def st_create_sets_dataframe(_sets: list[WorkingSet_t]) -> pd.DataFrame:
     return create_sets_dataframe(_sets)
 
 
@@ -53,8 +54,7 @@ def render_set_metrics_old(metrics: list[tuple[str, Any]]) -> None:
 
     num_columns = len(valid_metrics)
     cols = st.columns(num_columns)
-    col_idx = 0
-    for label, value in valid_metrics:
+    for col_idx, (label, value) in enumerate(valid_metrics):
         display_value = value
 
         # Ensure display_value is a type st.metric can handle directly, or convert to string
@@ -62,11 +62,10 @@ def render_set_metrics_old(metrics: list[tuple[str, Any]]) -> None:
             display_value = str(value)
 
         cols[col_idx].metric(label, display_value)
-        col_idx += 1
 
 
 def render_unknown_set_details(ws: WorkingSet_t):
-    st.markdown(f'`{str(ws)}`')
+    st.markdown(f'`{ws!s}`')
 
 
 def display_set_details_ui(working_set: WorkingSet_t):
@@ -86,7 +85,7 @@ def display_set_details_ui(working_set: WorkingSet_t):
     _render_rest_caption(working_set)
 
 
-def display_sets_table_ui(sets: List[WorkingSet_t]):
+def display_sets_table_ui(sets: list[WorkingSet_t]):
     """
     Renders a table of metrics for a list of sets using the new DataFrame function.
 

@@ -1,7 +1,8 @@
 import pytest
+
+from pr_pro.exercises.common import backsquat, bench_press, deadlift, pullup
 from pr_pro.sets import RepsAndWeightsSet, RepsRPESet
 from pr_pro.workout_component import ExerciseGroup, SingleExercise
-from pr_pro.exercises.common import backsquat, deadlift, pullup, bench_press
 
 
 class TestSingleExercise:

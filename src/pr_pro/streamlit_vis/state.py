@@ -1,6 +1,7 @@
-import streamlit as st
 import json
 import os
+
+import streamlit as st
 
 DATA_FILE = 'app_state.json'
 _PERSISTED_SESSION_STATE_KEYS = '_persisted_checkbox_keys_'
@@ -32,7 +33,7 @@ def load_persisted_state_from_file():
             st.warning(
                 f'Could not decode state file {DATA_FILE}. Starting with/using default states.'
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             st.error(f'Error loading state from {DATA_FILE}: {e}')
 
     for key in list(st.session_state[_PERSISTED_SESSION_STATE_KEYS]):
@@ -62,7 +63,7 @@ def save_persisted_state_to_file():
     try:
         with open(DATA_FILE, 'w') as f:
             json.dump(data_to_save, f, indent=4)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         st.error(f'Error saving state to {DATA_FILE}: {e}')
 
 

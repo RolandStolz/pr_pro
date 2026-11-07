@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Self
 
 from pydantic import BaseModel, field_serializer
 
-from pr_pro.workout_session import WorkoutSession
 from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import Exercise, Exercise_t
+from pr_pro.workout_session import WorkoutSession
 
 
 class Program(BaseModel):

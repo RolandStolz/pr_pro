@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, Field, model_validator
+
 from pr_pro.configs import ComputeConfig
 
 logger = logging.getLogger(__name__)

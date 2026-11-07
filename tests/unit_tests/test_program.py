@@ -1,4 +1,5 @@
 import pytest
+
 from pr_pro.exercises.common import bench_press
 
 

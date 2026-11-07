@@ -1,8 +1,10 @@
 from __future__ import annotations
-from abc import abstractmethod
-from copy import deepcopy
+
 import logging
-from typing import Any, Self, Sequence
+from abc import abstractmethod
+from collections.abc import Sequence
+from copy import deepcopy
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
@@ -92,11 +94,11 @@ class SingleExercise(WorkoutComponent):
         if best_value is None:
             associated_exercise = compute_config.exercise_associations.get(self.exercise)
             if not associated_exercise:
-                return None
+                return
             best_value = best_exercise_values.get(associated_exercise)
 
         if best_value is None:
-            return None
+            return
 
         for working_set in self.sets:
             working_set.compute_values(best_value, compute_config)
@@ -110,10 +112,9 @@ class ExerciseGroup(WorkoutComponent):
         if len(self.exercises) != len(set(self.exercises)):
             raise ValueError('Exercises must be unique in the group.')
 
-        if len(self.exercises) > 0:
+        if len(self.exercises) > 0 and self.exercises[0] not in self.exercise_sets_dict:
             # Only create the empty lists, if the exercise key's don't exist yet (e.g., after model validation)
-            if self.exercises[0] not in self.exercise_sets_dict:
-                self.exercise_sets_dict = {e: [] for e in self.exercises}
+            self.exercise_sets_dict = {e: [] for e in self.exercises}
 
     @staticmethod
     def from_prev_component(component: ExerciseGroup, **kwargs) -> ExerciseGroup:
@@ -229,11 +230,11 @@ class ExerciseGroup(WorkoutComponent):
             if best_value is None:
                 associated_exercise = compute_config.exercise_associations.get(exercise)
                 if not associated_exercise:
-                    return None
+                    return
                 best_value = best_exercise_values.get(associated_exercise)
 
             if best_value is None:
-                return None
+                return
 
             for working_set in sets:
                 working_set.compute_values(best_value, compute_config)
