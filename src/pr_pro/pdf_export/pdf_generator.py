@@ -32,7 +32,7 @@ COL_PADDING_MM = 2.0
 COL_SLACK_MM = 1.0
 # Floor for narrow columns such as 'Set', so they do not look cramped next to
 # wider ones. Raise it to even the columns out, drop it to 0 to fit contents only.
-MIN_COL_WIDTH_MM = 17.0
+MIN_COL_WIDTH_MM = 10.0
 # Row height is the line height plus the vertical padding above and below it.
 ROW_LINE_HEIGHT_MM = 3.6
 ROW_PADDING_MM = 0.8
@@ -51,6 +51,10 @@ PT_PER_MM = 72 / 25.4
 FIELD_FLAG_MULTILINE = 1 << 12
 ANNOT_FLAG_PRINT = 1 << 2
 GROUP_GAP_MM = 8.0
+# Overview: the phase name sits in its own column, its sessions follow on the same line.
+PHASE_LABEL_WIDTH_MM = 14.0
+OVERVIEW_ROW_HEIGHT_MM = 7.0
+SESSION_SEPARATOR = ' | '
 
 
 class NoteField(NamedTuple):
@@ -144,6 +148,27 @@ class WorkoutPDF(FPDF):
         self.set_x(self.l_margin + indent)
         self.cell(0, 7, label, border=0, align='L', link=link, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_text_color(0, 0, 0)
+
+    def add_phase_row(self, phase_name: str, sessions: list[tuple[str, int]]) -> None:
+        """Write one overview row: the phase name, then its clickable sessions, | apart.
+
+        The name keeps a fixed-width column so the sessions line up across rows; `write`
+        flows the rest and wraps a long row by itself.
+        """
+        self.set_font('Helvetica', 'B', 11)
+        label_width = max(PHASE_LABEL_WIDTH_MM, self.get_string_width(phase_name) + COL_PADDING_MM)
+        self.cell(label_width, OVERVIEW_ROW_HEIGHT_MM, phase_name, new_x=XPos.RIGHT, new_y=YPos.TOP)
+
+        for position, (label, link) in enumerate(sessions):
+            if position:
+                self.set_font('Helvetica', '', 11)
+                self.write(OVERVIEW_ROW_HEIGHT_MM, SESSION_SEPARATOR)
+            self.set_font('Helvetica', 'U', 11)
+            self.set_text_color(0, 0, 200)
+            self.write(OVERVIEW_ROW_HEIGHT_MM, label, link)
+            self.set_text_color(0, 0, 0)
+
+        self.ln(OVERVIEW_ROW_HEIGHT_MM)
 
     def add_paragraph(self, text: str):
         self.set_font('Helvetica', '', 11)
@@ -409,12 +434,14 @@ def _render_overview(pdf: WorkoutPDF, program: Program, links: dict[str, int]) -
 
     phased: set[str] = set()
     for phase_name, session_ids in program.program_phases.items():
-        pdf.add_text(phase_name, bold=True)
-        for session_id in session_ids:
-            session = program.workout_session_dict[session_id]
-            pdf.add_session_link(_overview_label(session), links[session_id], indent=5)
-            phased.add(session_id)
-        pdf.ln(1)
+        pdf.add_phase_row(
+            phase_name,
+            [
+                (_overview_label(program.workout_session_dict[sid]), links[sid])
+                for sid in session_ids
+            ],
+        )
+        phased.update(session_ids)
 
     # Sessions outside any phase, which is every session when no phases are defined.
     for session_id, session in program.workout_session_dict.items():

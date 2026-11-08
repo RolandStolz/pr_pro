@@ -43,3 +43,27 @@ def test_add_and_update_best_exercise_value(basic_program):
     assert basic_program.best_exercise_values[bench_press] == 100.0
     basic_program.add_best_exercise_value(bench_press, 105.5)
     assert basic_program.best_exercise_values[bench_press] == 105.5
+
+
+def test_json_round_trip_keeps_set_types(tmp_path):
+    """Set classes must survive serialization. PowerExerciseSet used to come back as a
+    RepsAndWeightsSet, since both accept reps/weight/percentage."""
+    from pr_pro.exercise import PowerExercise
+    from pr_pro.program import Program
+    from pr_pro.sets import PowerExerciseSet
+    from pr_pro.workout_component import SingleExercise
+    from pr_pro.workout_session import WorkoutSession
+
+    snatch = PowerExercise(name='Snatch')
+    program = Program(name='Power program').add_workout_session(
+        WorkoutSession(id='W1D1').add_component(
+            SingleExercise(exercise=snatch).add_repeating_set(2, snatch.create_set(2, weight=50))
+        )
+    )
+    path = tmp_path.joinpath('program.json')
+    program.write_json_file(path)
+    loaded = Program.from_json_file(path)
+
+    component = loaded.workout_session_dict['W1D1'].workout_components[0]
+    assert isinstance(component.sets[0], PowerExerciseSet)
+    assert loaded == program

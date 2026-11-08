@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import datetime
 import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
@@ -13,6 +15,23 @@ from pr_pro.exercise import Exercise_t, RepsAndWeightsExercise
 from pr_pro.sets import WorkingSet_t
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Rel:
+    """A progression delta relative to the previous value: Rel(0.1) is +10%.
+
+    Pass it wherever `from_prev_component` takes a delta, e.g.
+    `from_prev_component(prev, percentage=Rel(0.1))`. Plain numbers are added, as before.
+    """
+
+    factor: float
+
+
+def _apply_delta(current: Any, delta: Rel | float | datetime.timedelta) -> Any:
+    if isinstance(delta, Rel):
+        return current * (1 + delta.factor)
+    return current + delta
 
 
 class WorkoutComponent(BaseModel):
@@ -66,7 +85,7 @@ class SingleExercise(WorkoutComponent):
 
         for key, value in kwargs.items():
             for w_set in new_component.sets:
-                w_set.__setattr__(key, w_set.__getattribute__(key) + value)
+                w_set.__setattr__(key, _apply_delta(w_set.__getattribute__(key), value))
 
         return new_component
 
@@ -137,7 +156,7 @@ class ExerciseGroup(WorkoutComponent):
             for i, e in enumerate(component.exercises):
                 if value[i] is not None:
                     for w_set in new_component.exercise_sets_dict[e]:
-                        w_set.__setattr__(key, w_set.__getattribute__(key) + value[i])
+                        w_set.__setattr__(key, _apply_delta(w_set.__getattribute__(key), value[i]))
 
         return new_component
 
@@ -230,11 +249,11 @@ class ExerciseGroup(WorkoutComponent):
             if best_value is None:
                 associated_exercise = compute_config.exercise_associations.get(exercise)
                 if not associated_exercise:
-                    return
+                    continue
                 best_value = best_exercise_values.get(associated_exercise)
 
             if best_value is None:
-                return
+                continue
 
             for working_set in sets:
                 working_set.compute_values(best_value, compute_config)
