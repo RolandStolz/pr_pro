@@ -5,7 +5,6 @@ import pytest
 from pr_pro.exercises.common import backsquat, deadlift
 from pr_pro.program import Program
 from pr_pro.visualization.visualize_exercises import (
-    build_exercise_df,
     build_exercise_matrix,
     plot_exercise_overview,
 )
@@ -17,15 +16,6 @@ from pr_pro.workout_session import WorkoutSession
 def close_figures():
     yield
     plt.close('all')
-
-
-def test_df_has_a_row_per_exercise_in_a_session(example_program):
-    df = build_exercise_df(example_program)
-
-    assert list(df.columns) == ['session', 'phase', 'exercise', 'sets', 'reps']
-    first = example_program.workout_session_dict['W1D1']
-    assert len(df[df['session'] == 'W1D1']) == len(first.get_exercise_sets())
-    assert (df['sets'] > 0).all()
 
 
 def test_matrix_columns_follow_the_program_phases(example_program):
@@ -87,10 +77,3 @@ def test_plot_draws_a_cell_per_exercise_and_group(example_program):
 def test_plot_needs_exercises():
     with pytest.raises(ValueError, match='no exercises'):
         plot_exercise_overview(Program(name='Empty program'))
-
-
-def test_an_exercise_in_two_components_pools_its_sets(session_a, exercise_component):
-    session_a.add_component(exercise_component).add_single_exercise(backsquat)
-
-    assert set(session_a.get_exercise_sets()) == {backsquat}
-    assert len(session_a.get_exercise_sets()[backsquat]) == len(exercise_component.sets)

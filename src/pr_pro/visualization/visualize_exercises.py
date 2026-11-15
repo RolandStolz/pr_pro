@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 from pr_pro.program import Program
 from pr_pro.visualization.common import UNPHASED, phase_of_session, phase_order
 
-Amount = Literal['sets', 'reps']
+GroupBy = Literal['phase', 'session']
 
 
 def build_exercise_df(program: Program) -> pd.DataFrame:
@@ -24,37 +24,33 @@ def build_exercise_df(program: Program) -> pd.DataFrame:
             'phase': phase_of.get(session_id, UNPHASED),
             'exercise': exercise.name,
             'sets': len(sets),
-            'reps': sum(getattr(s, 'reps', 0) or 0 for s in sets),
         }
         for session_id, session in program.workout_session_dict.items()
         for exercise, sets in session.get_exercise_sets().items()
     ]
-    return pd.DataFrame(rows, columns=pd.Index(['session', 'phase', 'exercise', 'sets', 'reps']))
+    return pd.DataFrame(rows, columns=pd.Index(['session', 'phase', 'exercise', 'sets']))
 
 
-def build_exercise_matrix(
-    program: Program, group_by: str = 'phase', amount: Amount = 'sets'
-) -> pd.DataFrame:
+def build_exercise_matrix(program: Program, group_by: GroupBy = 'phase') -> pd.DataFrame:
     """The overview as a table: one row per exercise, one column per group."""
     df = build_exercise_df(program)
     if df.empty:
         return pd.DataFrame()
 
     columns = phase_order(program) if group_by == 'phase' else list(program.workout_session_dict)
-    matrix = df.pivot_table(index='exercise', columns=group_by, values=amount, aggfunc='sum')
+    matrix = df.pivot_table(index='exercise', columns=group_by, values='sets', aggfunc='sum')
     matrix = matrix.reindex(columns=[c for c in columns if c in matrix.columns])
     return matrix.loc[matrix.sum(axis=1).sort_values(ascending=False).index]
 
 
 def plot_exercise_overview(
     program: Program,
-    group_by: Literal['phase', 'session'] = 'phase',
-    amount: Amount = 'sets',
+    group_by: GroupBy = 'phase',
     annotate: bool = True,
     show: bool = False,
 ) -> Figure:
     """Plot which exercises are trained when, and how much, as a heatmap."""
-    matrix = build_exercise_matrix(program, group_by, amount)
+    matrix = build_exercise_matrix(program, group_by)
     if matrix.empty:
         raise ValueError(f'Program {program.name} trains no exercises to plot.')
 
@@ -71,13 +67,13 @@ def plot_exercise_overview(
         fmt='g',
         annot_kws={'size': 7},
         linewidths=0.5,
-        cbar_kws={'label': amount.capitalize()},
+        cbar_kws={'label': 'Sets'},
     )
     axis.set_xlabel(group_by.capitalize())
     axis.set_ylabel('')
     axis.tick_params(axis='y', labelsize=8, rotation=0)
     axis.tick_params(axis='x', labelsize=8, rotation=90 if columns > 12 else 0)
-    figure.suptitle(f'{program.name}: {amount} per exercise')
+    figure.suptitle(f'{program.name}: sets per exercise')
 
     if show:
         plt.show()

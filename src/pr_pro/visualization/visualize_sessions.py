@@ -16,8 +16,7 @@ def _reps_text(working_set: WorkingSet_t) -> str:
     """What the set asks for, before any load: its reps, or its duration."""
     if isinstance(working_set, DurationSet):
         return format_duration(working_set.duration)
-    reps = getattr(working_set, 'reps', None)
-    return str(reps) if reps is not None else str(working_set)
+    return str(working_set.reps)
 
 
 def _load(working_set: WorkingSet_t) -> tuple[float, str] | None:
@@ -37,11 +36,13 @@ def sets_text(sets: Sequence[WorkingSet_t]) -> str:
     entries. A change of reps starts a new entry, since that is the structure worth
     seeing here; the individual sets are in print(session) and the PDF.
     """
+    described = [(_reps_text(s), _load(s)) for s in sets]
     entries = []
-    for (reps_text, unit), run in groupby(sets, key=lambda s: (_reps_text(s), _unit(s))):
+    # Kilos and percentages never share an entry, so the unit is part of the key.
+    for (reps_text, unit), run in groupby(described, key=lambda d: (d[0], d[1][1] if d[1] else '')):
         group = list(run)
         count = f'{len(group)}x' if len(group) > 1 else ''
-        loads = [load[0] for s in group if (load := _load(s)) is not None]
+        loads = [load[0] for _, load in group if load is not None]
         if not loads:
             entries.append(f'{count}{reps_text}')
         elif min(loads) == max(loads):
@@ -49,12 +50,6 @@ def sets_text(sets: Sequence[WorkingSet_t]) -> str:
         else:
             entries.append(f'{count}{reps_text} @ {min(loads):g}-{max(loads):g}{unit}')
     return ', '.join(entries)
-
-
-def _unit(working_set: WorkingSet_t) -> str:
-    """Kilos and percentages never share an entry, so the unit is part of the key."""
-    load = _load(working_set)
-    return load[1] if load else ''
 
 
 def build_session_table(
@@ -88,7 +83,8 @@ def build_session_table(
     if exercises is None:
         return table
 
-    unknown = [name for name in exercises if name not in program.get_exercise_names()]
+    known = program.get_exercise_names()
+    unknown = [name for name in exercises if name not in known]
     if unknown:
         raise ValueError(f'Program {program.name} trains no exercise {unknown}.')
     return table.reindex(index=pd.Index(exercises, name='exercise'), fill_value='')
