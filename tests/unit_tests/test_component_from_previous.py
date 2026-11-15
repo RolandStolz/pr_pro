@@ -43,3 +43,35 @@ def test_exercise_group_from_prev_session_not_found(session_a):
         ValueError, match='No previous component found for exercises Backsquat, Deadlift'
     ):
         exercise_group_from_prev_session(session_a, [backsquat, deadlift])
+
+
+def test_single_exercise_rel_delta(session_a, exercise_component):
+    """Rel scales the previous value instead of adding to it."""
+    session_a.add_component(exercise_component)
+    from pr_pro.workout_component import Rel
+
+    new_component = single_exercise_from_prev_session(session_a, backsquat, weight=Rel(0.1))
+    assert new_component.sets[0].weight == pytest.approx(110)  # type: ignore
+
+
+def test_single_exercise_rel_mixed_with_additive(session_a, exercise_component):
+    """A Rel delta and a plain delta can be combined in one call."""
+    session_a.add_component(exercise_component)
+    from pr_pro.workout_component import Rel
+
+    new_component = single_exercise_from_prev_session(
+        session_a, backsquat, weight=Rel(0.2), reps=-2
+    )
+    assert new_component.sets[0].weight == pytest.approx(120)  # type: ignore
+    assert new_component.sets[0].reps == 3  # type: ignore
+
+
+def test_exercise_group_rel_delta(session_a, exercise_group_component):
+    """Rel works per exercise in a group, alongside None for untouched ones."""
+    session_a.add_component(exercise_group_component)
+    from pr_pro.workout_component import Rel
+
+    new_group = exercise_group_from_prev_session(
+        session_a, [deadlift, pullup], weight=(Rel(0.5), None)
+    )
+    assert new_group.exercise_sets_dict[deadlift][0].weight == pytest.approx(150)  # type: ignore

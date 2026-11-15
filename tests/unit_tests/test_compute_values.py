@@ -101,3 +101,20 @@ class TestPowerExerciseSetComputeValues:
         """
         work_set = PowerExerciseSet(reps=3, weight=60, percentage=0.6)
         work_set.compute_values(100.0, mock_config)
+
+
+def test_group_compute_values_skips_only_the_unresolvable_exercise(mock_config):
+    """An exercise without a max must not stop the rest of the group from computing."""
+    from pr_pro.exercise import PowerExercise, RepsExercise
+    from pr_pro.workout_component import ExerciseGroup
+
+    pushup = RepsExercise(name='Pushup')
+    snatch = PowerExercise(name='Snatch')
+
+    # Pushup has no best value and comes first, so it used to abort the whole group.
+    group = ExerciseGroup(exercises=[pushup, snatch]).add_group_sets(
+        {pushup: pushup.create_set(10), snatch: snatch.create_set(2, percentage=0.6)}
+    )
+    group.compute_values({snatch: 40.0}, mock_config)
+
+    assert group.exercise_sets_dict[snatch][0].weight == pytest.approx(24.0)

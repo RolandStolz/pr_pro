@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 from pydantic import BaseModel, Field, model_validator
@@ -15,10 +15,14 @@ logger = logging.getLogger(__name__)
 
 class WorkingSet(BaseModel):
     rest_between: datetime.timedelta | None = None
+    # Necessary for discerning set types in model validation
+    model_type: Literal['WorkingSet'] = 'WorkingSet'
 
     def __str__(self) -> str:
         formatted_items = []
         for a, value in self.model_dump().items():
+            if a == 'model_type':
+                continue
             if value is not None:
                 if isinstance(value, float):
                     formatted_items.append(f'{a} {round(value, 3)}')
@@ -32,14 +36,17 @@ class WorkingSet(BaseModel):
 
 
 class RepsSet(WorkingSet):
+    model_type: Literal['RepsSet'] = 'RepsSet'
     reps: int
 
 
 class RepsRPESet(RepsSet):
+    model_type: Literal['RepsRPESet'] = 'RepsRPESet'
     rpe: int
 
 
 class RepsAndWeightsSet(RepsSet):
+    model_type: Literal['RepsAndWeightsSet'] = 'RepsAndWeightsSet'
     weight: float | None = Field(default=None, ge=0)
     percentage: float | None = Field(default=None, ge=0)
     relative_percentage: float | None = Field(default=None, ge=0)
@@ -106,6 +113,7 @@ class RepsAndWeightsSet(RepsSet):
 
 
 class PowerExerciseSet(RepsSet):
+    model_type: Literal['PowerExerciseSet'] = 'PowerExerciseSet'
     weight: float | None = Field(default=None, ge=0)
     percentage: float | None = Field(default=None, ge=0)
 
@@ -142,10 +150,12 @@ class PowerExerciseSet(RepsSet):
 
 
 class RepsDistanceSet(RepsSet):
+    model_type: Literal['RepsDistanceSet'] = 'RepsDistanceSet'
     distance: float
 
 
 class DurationSet(WorkingSet):
+    model_type: Literal['DurationSet'] = 'DurationSet'
     duration: datetime.timedelta
 
 
