@@ -4,7 +4,7 @@ from matplotlib.patches import PathPatch, Rectangle
 
 from pr_pro.metrics import INTENSITY, TOTAL_REPS
 from pr_pro.program import Program
-from pr_pro.visualizations import (
+from pr_pro.visualization.visualize_metrics import (
     UNPHASED,
     build_metrics_df,
     plot_phase_metrics,

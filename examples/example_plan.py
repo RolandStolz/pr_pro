@@ -1,5 +1,6 @@
 import datetime
 
+from pr_pro.visualization.visualize_metrics import plot_session_metrics
 from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import DurationExercise, RepsAndWeightsExercise, RepsExercise, RepsRPEExercise
 from pr_pro.exercises.common import backsquat, bench_press, deadlift, pullup, pushup, split_squat
@@ -143,6 +144,8 @@ def main():
     program.export_to_pdf(
         Path('test.pdf'), exclude_metrics=['relative_percentage'], notes_field=True
     )
+
+    plot_session_metrics(program, show=True)
 
 
 if __name__ == '__main__':
