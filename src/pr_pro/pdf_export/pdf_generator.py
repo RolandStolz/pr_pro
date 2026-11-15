@@ -116,6 +116,14 @@ class WorkoutPDF(FPDF):
         self.cell(0, 12, title, border=0, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(3)
 
+    def add_description(self, description: str) -> None:
+        """Italic, muted, wrapping paragraph under the program title."""
+        self.set_font('Helvetica', 'I', 11)
+        self.set_text_color(*MUTED_TEXT)
+        self.multi_cell(0, 5, description, align='L', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.set_text_color(0)
+        self.ln(2)
+
     def add_heading(self, heading: str, level: int = 1):
         if level == 1:
             self.set_font('Helvetica', 'B', 16)
@@ -223,11 +231,6 @@ class WorkoutPDF(FPDF):
         if df.empty:
             return
 
-        col_widths = _column_widths(self, df)
-        # Below the floor fpdf2 scales the columns up proportionally, so they stay
-        # even with each other.
-        width = min(max(sum(col_widths), self.epw * MIN_TABLE_WIDTH_FRACTION), self.epw)
-
         if part_of_group:
             self.set_font('Helvetica', 'B', 10)
             self.cell(0, 7, exercise_name, border=0, align='L', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -240,6 +243,16 @@ class WorkoutPDF(FPDF):
             self.set_y(self.get_y() - NOTE_LIFT_MM)
             self.add_note(note)
             self.ln(NOTE_GAP_BELOW_MM)
+
+        self.add_table(*_df_table(df))
+
+    def add_table(self, headings: list[str], rows: list[list[str]]) -> None:
+        """Draw a booktabs-style table: no fills, no vertical rules, columns as wide
+        as their contents, with the rules running the table's full width."""
+        col_widths = _column_widths(self, headings, rows)
+        # Below the floor fpdf2 scales the columns up proportionally, so they stay
+        # even with each other.
+        width = min(max(sum(col_widths), self.epw * MIN_TABLE_WIDTH_FRACTION), self.epw)
 
         self.set_font('Helvetica', '', TABLE_FONT_SIZE_PT)
         self.set_draw_color(0)
@@ -258,12 +271,12 @@ class WorkoutPDF(FPDF):
             padding=(ROW_PADDING_MM, COL_PADDING_MM),
         ) as table:
             header = table.row()
-            for heading in df.columns:
-                header.cell(str(heading))
-            for values in df.itertuples(index=False):
+            for heading in headings:
+                header.cell(heading)
+            for values in rows:
                 row = table.row()
                 for value in values:
-                    row.cell('' if value is None else str(value))
+                    row.cell(value)
 
         # The table draws no rules of its own, so all three are drawn here, spanning
         # exactly the table's width.
@@ -285,15 +298,26 @@ class WorkoutPDF(FPDF):
         self.set_text_color(0)
 
 
-def _column_widths(pdf: WorkoutPDF, df) -> list[float]:
+def _df_table(df) -> tuple[list[str], list[list[str]]]:
+    """A dataframe as the headings and row strings the table drawing takes."""
+    return (
+        [str(column) for column in df.columns],
+        [
+            ['' if value is None else str(value) for value in values]
+            for values in df.itertuples(index=False)
+        ],
+    )
+
+
+def _column_widths(pdf: WorkoutPDF, headings: list[str], rows: list[list[str]]) -> list[float]:
     """Width each column needs for its widest entry, headings included."""
     widths = []
-    for column in df.columns:
+    for index, heading in enumerate(headings):
         pdf.set_font('Helvetica', 'B', TABLE_FONT_SIZE_PT)
-        widest = pdf.get_string_width(str(column))
+        widest = pdf.get_string_width(heading)
         pdf.set_font('Helvetica', '', TABLE_FONT_SIZE_PT)
-        for value in df[column]:
-            widest = max(widest, pdf.get_string_width(str(value)))
+        for row in rows:
+            widest = max(widest, pdf.get_string_width(row[index]))
         content_width = widest + 2 * COL_PADDING_MM + COL_SLACK_MM
         widths.append(max(content_width, MIN_COL_WIDTH_MM))
     return widths
@@ -316,7 +340,7 @@ def _side_by_side_slots(
             return None
         pdf.set_font('Helvetica', 'B', 10)
         name_width = pdf.get_string_width(exercise.name) + COL_PADDING_MM
-        slots.append(max(sum(_column_widths(pdf, df)), name_width))
+        slots.append(max(sum(_column_widths(pdf, *_df_table(df))), name_width))
 
     if sum(slots) > usable_width - GROUP_GAP_MM * (len(slots) - 1):
         return None
@@ -424,11 +448,18 @@ def _render_overview(pdf: WorkoutPDF, program: Program, links: dict[str, int]) -
     """Title, best values, and one clickable row per session grouped by phase."""
     pdf.add_title(program.name)
 
+    if program.description:
+        pdf.add_description(program.description)
+
     if program.best_exercise_values:
         pdf.add_heading('Best Exercise Values / 1RM', level=1)
-        for exercise, value in program.best_exercise_values.items():
-            pdf.add_text(f'{exercise.name}: {value:g} kg', bold=False)
-        pdf.ln(2)
+        pdf.add_table(
+            ['Exercise', '1RM'],
+            [
+                [exercise.name, f'{value:g} kg']
+                for exercise, value in program.best_exercise_values.items()
+            ],
+        )
 
     pdf.add_heading('Workout Sessions', level=1)
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from inspect import cleandoc
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import Exercise, Exercise_t
@@ -12,13 +13,23 @@ from pr_pro.workout_session import WorkoutSession
 
 
 class Program(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+
     name: str
+    description: str | None = None
     best_exercise_values: dict[Exercise_t, float] = {}
     workout_session_dict: dict[str, WorkoutSession] = {}
     program_phases: dict[str, list[str]] = {}
 
+    @field_validator('description')
+    @classmethod
+    def _clean_description(cls, v: str | None) -> str | None:
+        """Strip the source indentation a triple-quoted description carries."""
+        return cleandoc(v) if v else v
+
     def __str__(self) -> str:
         workout_str = f'--- Workout {self.name} ---\n'
+        description_str = f'{self.description}\n\n' if self.description else ''
         best_exercise_str = (
             'Best exercise values\n  '
             + '\n  '.join([f'{e.name}: {value}' for e, value in self.best_exercise_values.items()])
@@ -29,7 +40,7 @@ class Program(BaseModel):
             + '\n'.join(ws.__str__() for ws in self.workout_session_dict.values())
             + '\n'
         )
-        return workout_str + best_exercise_str + workout_sessions_str
+        return workout_str + description_str + best_exercise_str + workout_sessions_str
 
     def add_workout_session(self, workout_session: WorkoutSession) -> Self:
         if workout_session.id in self.workout_session_dict:
