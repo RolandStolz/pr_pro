@@ -47,6 +47,14 @@ Bench Press with 2 sets:
 pip install pr_pro
 ```
 
+
+## Visualization
+
+The `pr_pro.visualization` gives you multiple options to visualize different aspects of your program:
+- `visualize_metrics`: Visualize metrics of your program, e.g. volume (total reps, total sets), or intensity.
+- `visualize_exercises`: A heatmap of the number of sets per exercise in the program.
+- `visualize_sessions`: Prints a table of concise information about the exercises per sessions in the program.
+
 ## `streamlit` visualization
 You need to install the visualization dependencies
 ```bash
