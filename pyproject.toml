@@ -28,6 +28,7 @@ vis = [
     "matplotlib>=3.10.3",
     "streamlit>=1.45.1",
     "watchdog>=6.0.0",
+    "seaborn>=0.13.2",
 ]
 dev = [
     "pypdf>=5.1.0",

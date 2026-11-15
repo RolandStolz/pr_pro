@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from pr_pro.configs import ComputeConfig
 from pr_pro.exercise import Exercise_t
+from pr_pro.sets import WorkingSet_t
 from pr_pro.workout_component import ExerciseGroup, SingleExercise, WorkoutComponent_t
 
 
@@ -71,6 +72,17 @@ class WorkoutSession(BaseModel):
     ) -> None:
         for component in self.workout_components:
             component.compute_values(best_exercise_values, compute_config)
+
+    def get_session_sets(self) -> list[WorkingSet_t]:
+        """Return all working sets in the session."""
+        sets = []
+        for component in self.workout_components:
+            if isinstance(component, SingleExercise):
+                sets.extend(component.sets)
+            elif isinstance(component, ExerciseGroup):
+                for exercise_sets in component.exercise_sets_dict.values():
+                    sets.extend(exercise_sets)
+        return sets
 
 
 def single_exercise_from_prev_session(
