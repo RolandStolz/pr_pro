@@ -79,11 +79,13 @@ class Program(BaseModel):
 
     def export_to_pdf(
         self,
-        file_path: Path,
+        file_path: Path | None = None,
         exclude_metrics: Iterable[str] = (),
         notes_field: bool = False,
-    ) -> None:
-        """Write the program to a PDF.
+    ) -> bytes:
+        """Render the program to a PDF and return it as bytes.
+
+        file_path, when given, also writes the PDF to that file.
 
         exclude_metrics names set fields to leave out of the tables, for example
         ('relative_percentage', 'percentage').
@@ -97,7 +99,7 @@ class Program(BaseModel):
             raise ImportError(
                 "PDF export requires additional dependencies. Please install with 'pip install pr_pro[vis]'"
             ) from e
-        export_program_to_pdf(
+        return export_program_to_pdf(
             self, file_path, exclude_metrics=exclude_metrics, notes_field=notes_field
         )
 

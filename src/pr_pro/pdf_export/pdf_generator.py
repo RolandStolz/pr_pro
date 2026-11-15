@@ -480,8 +480,8 @@ def _render_overview(pdf: WorkoutPDF, program: Program, links: dict[str, int]) -
             pdf.add_session_link(_overview_label(session), links[session_id])
 
 
-def _attach_note_fields(output_path: Path, note_fields: list[NoteField]) -> None:
-    """Rewrite the file with a fillable multiline text field over each reserved box.
+def _attach_note_fields(data: bytes, note_fields: list[NoteField]) -> bytes:
+    """Return the PDF with a fillable multiline text field over each reserved box.
 
     fpdf2 has no AcroForm support, so the widgets are added afterwards with pypdf.
     NeedAppearances asks the viewer to render whatever the reader types, since the
@@ -498,7 +498,7 @@ def _attach_note_fields(output_path: Path, note_fields: list[NoteField]) -> None
         TextStringObject,
     )
 
-    writer = PdfWriter(clone_from=io.BytesIO(output_path.read_bytes()))
+    writer = PdfWriter(clone_from=io.BytesIO(data))
     references = []
     for field in note_fields:
         page = writer.pages[field.page - 1]
@@ -555,16 +555,20 @@ def _attach_note_fields(output_path: Path, note_fields: list[NoteField]) -> None
     for page_number, values in by_page.items():
         writer.update_page_form_field_values(writer.pages[page_number - 1], values)
 
-    writer.write(output_path)
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
 
 
 def export_program_to_pdf(
     program: Program,
-    output_path: Path,
+    output_path: Path | None = None,
     exclude_metrics: Iterable[str] = (),
     notes_field: bool = False,
-) -> None:
-    """Export a workout program to PDF format.
+) -> bytes:
+    """Render a workout program to PDF and return it as bytes.
+
+    output_path, when given, also writes those bytes to that file.
 
     exclude_metrics names set fields to leave out of the tables, for example
     'relative_percentage' or 'rest_between'. Unknown names raise ValueError rather
@@ -607,8 +611,9 @@ def export_program_to_pdf(
         pdf.set_link(links[session_id], page=pdf.page_no())
         _render_session(pdf, session)
 
-    # Save the PDF
-    output_path = Path(output_path)
-    pdf.output(str(output_path))
+    data = bytes(pdf.output())
     if pdf.note_fields:
-        _attach_note_fields(output_path, pdf.note_fields)
+        data = _attach_note_fields(data, pdf.note_fields)
+    if output_path is not None:
+        Path(output_path).write_bytes(data)
+    return data
