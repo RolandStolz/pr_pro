@@ -12,20 +12,9 @@ from matplotlib.figure import Figure
 
 from pr_pro.metrics import INTENSITY, TOTAL_REPS, Metric
 from pr_pro.program import Program
-
-UNPHASED: str = 'Unphased'
-
+from pr_pro.visualization.common import UNPHASED, phase_of_session, phase_order
 
 DEFAULT_VOLUME_INTENSITY_METRICS = (TOTAL_REPS, INTENSITY)
-
-
-def _phase_of_session(program: Program) -> dict[str, str]:
-    """The phase each session belongs to; program_phases holds the reverse."""
-    return {
-        session_id: phase
-        for phase, session_ids in program.program_phases.items()
-        for session_id in session_ids
-    }
 
 
 def build_metrics_df(program: Program, metrics: Sequence[Metric]) -> pd.DataFrame:
@@ -38,7 +27,7 @@ def build_metrics_df(program: Program, metrics: Sequence[Metric]) -> pd.DataFram
     Call program.compute_values(...) first: sets carry percentages only once they
     are computed.
     """
-    phase_of = _phase_of_session(program)
+    phase_of = phase_of_session(program)
     rows = [
         {
             'session': session_id,
@@ -97,7 +86,7 @@ def plot_session_metrics(
     metrics: Sequence[Metric] = DEFAULT_VOLUME_INTENSITY_METRICS,
     show: bool = False,
 ) -> Figure:
-    """Plot each metric per session: a bar where it has one value, a box where several."""
+    """Plot each metric per session."""
     return _plot_metrics(program, metrics, 'session', list(program.workout_session_dict), show)
 
 
@@ -106,18 +95,11 @@ def plot_phase_metrics(
     metrics: Sequence[Metric] = DEFAULT_VOLUME_INTENSITY_METRICS,
     show: bool = False,
 ) -> Figure:
-    """Plot each metric per phase, pooling the values of the sessions it holds.
-
-    Everything is a box here, a one-value-per-session metric included: its spread
-    over the phase shows how evenly that work sits across the phase.
-    """
+    """Plot each metric per phase, pooling the values of the sessions it holds."""
     if not program.program_phases:
         raise ValueError(f'Program {program.name} defines no phases to group by.')
 
-    order = list(program.program_phases)
-    if len(_phase_of_session(program)) < len(program.workout_session_dict):
-        order.append(UNPHASED)
-    return _plot_metrics(program, metrics, 'phase', order, show)
+    return _plot_metrics(program, metrics, 'phase', phase_order(program), show)
 
 
 if __name__ == '__main__':  # pragma: no cover

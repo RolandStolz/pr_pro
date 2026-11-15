@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from typing import Self
 
 from pydantic import BaseModel
@@ -59,13 +60,7 @@ class WorkoutSession(BaseModel):
         return n_exercises
 
     def get_number_of_sets(self) -> int:
-        n_sets = 0
-        for component in self.workout_components:
-            if isinstance(component, SingleExercise):
-                n_sets += len(component.sets)
-            elif isinstance(component, ExerciseGroup):
-                n_sets += sum(len(s) for s in component.exercise_sets_dict.values())
-        return n_sets
+        return len(self.get_session_sets())
 
     def compute_values(
         self, best_exercise_values: dict[Exercise_t, float], compute_config: ComputeConfig
@@ -73,16 +68,51 @@ class WorkoutSession(BaseModel):
         for component in self.workout_components:
             component.compute_values(best_exercise_values, compute_config)
 
+    def get_exercise_sets(self) -> dict[Exercise_t, list[WorkingSet_t]]:
+        """Return all working sets in the session, under the exercise they belong to.
+
+        An exercise trained in two components of one session holds the sets of both.
+        """
+        exercise_sets: dict[Exercise_t, list[WorkingSet_t]] = {}
+        for component in self.workout_components:
+            component_sets = (
+                [(component.exercise, component.sets)]
+                if isinstance(component, SingleExercise)
+                else list(component.exercise_sets_dict.items())
+            )
+            for exercise, sets in component_sets:
+                exercise_sets.setdefault(exercise, []).extend(sets)
+        return exercise_sets
+
     def get_session_sets(self) -> list[WorkingSet_t]:
         """Return all working sets in the session."""
-        sets = []
-        for component in self.workout_components:
+        return [s for sets in self.get_exercise_sets().values() for s in sets]
+
+    def get_exercise_names(self) -> list[str]:
+        """The name of every exercise the session trains, in the order it trains them."""
+        return [exercise.name for exercise in self.get_exercise_sets()]
+
+    def filter_exercises(self, exercise_names: Collection[str]) -> Self:
+        """A copy of the session holding only the named exercises.
+
+        A group keeps the named exercises of it and drops the rest, and is itself
+        dropped once none are left. The session stays, components or not, so a
+        filtered program still has all its sessions to show.
+        """
+        filtered = self.model_copy(deep=True)
+        kept: list[WorkoutComponent_t] = []
+        for component in filtered.workout_components:
             if isinstance(component, SingleExercise):
-                sets.extend(component.sets)
-            elif isinstance(component, ExerciseGroup):
-                for exercise_sets in component.exercise_sets_dict.values():
-                    sets.extend(exercise_sets)
-        return sets
+                if component.exercise.name in exercise_names:
+                    kept.append(component)
+                continue
+            for exercise in list(component.exercises):
+                if exercise.name not in exercise_names:
+                    component.remove_exercise(exercise)
+            if component.exercises:
+                kept.append(component)
+        filtered.workout_components = kept
+        return filtered
 
 
 def single_exercise_from_prev_session(

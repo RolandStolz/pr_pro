@@ -1,6 +1,7 @@
 import pytest
 
-from pr_pro.exercises.common import bench_press
+from pr_pro.exercises.common import backsquat, bench_press, deadlift, pullup
+from pr_pro.workout_component import ExerciseGroup, SingleExercise
 
 
 def test_add_workout_session_success(basic_program, session_a):
@@ -67,3 +68,65 @@ def test_json_round_trip_keeps_set_types(tmp_path):
     component = loaded.workout_session_dict['W1D1'].workout_components[0]
     assert isinstance(component.sets[0], PowerExerciseSet)
     assert loaded == program
+
+
+def test_get_exercise_names_in_order_of_introduction(example_program):
+    names = example_program.get_exercise_names()
+
+    assert names == list(dict.fromkeys(names))
+    assert 'Backsquat' in names
+
+
+def test_filter_exercises_keeps_only_the_named_ones(example_program):
+    filtered = example_program.filter_exercises(['Backsquat'])
+
+    assert filtered.get_exercise_names() == ['Backsquat']
+    # Sessions and phases survive, so the program keeps its shape.
+    assert list(filtered.workout_session_dict) == list(example_program.workout_session_dict)
+    assert filtered.program_phases == example_program.program_phases
+
+
+def test_filter_exercises_leaves_the_original_alone(example_program):
+    before = example_program.get_exercise_names()
+    example_program.filter_exercises(['Backsquat'])
+
+    assert example_program.get_exercise_names() == before
+
+
+def test_filter_exercises_trims_groups_to_the_named_members(session_a, basic_program):
+    basic_program.add_workout_session(
+        session_a.add_component(
+            ExerciseGroup(exercises=[deadlift, pullup]).add_repeating_group_sets(
+                2, {deadlift: deadlift.create_set(5, weight=100), pullup: pullup.create_set(8)}
+            )
+        )
+    )
+
+    filtered = basic_program.filter_exercises(['Deadlift'])
+    group = filtered.workout_session_dict[session_a.id].workout_components[0]
+
+    assert [exercise.name for exercise in group.exercises] == ['Deadlift']
+
+
+def test_filter_exercises_drops_a_group_with_no_named_member(session_a, basic_program):
+    basic_program.add_workout_session(
+        session_a.add_component(
+            ExerciseGroup(exercises=[deadlift, pullup]).add_repeating_group_sets(
+                2, {deadlift: deadlift.create_set(5, weight=100), pullup: pullup.create_set(8)}
+            )
+        ).add_component(
+            SingleExercise(exercise=backsquat).add_repeating_set(
+                3, backsquat.create_set(5, weight=100)
+            )
+        )
+    )
+
+    filtered = basic_program.filter_exercises(['Backsquat'])
+    components = filtered.workout_session_dict[session_a.id].workout_components
+
+    assert [c.exercise.name for c in components] == ['Backsquat']
+
+
+def test_filter_exercises_rejects_an_unknown_exercise(example_program):
+    with pytest.raises(ValueError, match='no exercise'):
+        example_program.filter_exercises(['Zercher carry'])

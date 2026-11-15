@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from inspect import cleandoc
 from pathlib import Path
 from typing import Self
@@ -60,6 +60,34 @@ class Program(BaseModel):
 
     def get_workout_session_by_id(self, session_id: str) -> WorkoutSession | None:
         return self.workout_session_dict.get(session_id, None)
+
+    def get_exercise_names(self) -> list[str]:
+        """Every exercise the program trains, in the order its sessions introduce them."""
+        return list(
+            dict.fromkeys(
+                name
+                for session in self.workout_session_dict.values()
+                for name in session.get_exercise_names()
+            )
+        )
+
+    def filter_exercises(self, exercise_names: Collection[str]) -> Program:
+        """A copy of the program holding only the named exercises.
+
+        Every session, phase and best value stays, so the copy drops into anything
+        that takes a program: the plots and tables then describe those exercises
+        alone, over the shape of the whole program.
+        """
+        unknown = sorted(set(exercise_names) - set(self.get_exercise_names()))
+        if unknown:
+            raise ValueError(f'Program {self.name} trains no exercise {unknown}.')
+
+        filtered = self.model_copy(deep=True)
+        filtered.workout_session_dict = {
+            session_id: session.filter_exercises(exercise_names)
+            for session_id, session in self.workout_session_dict.items()
+        }
+        return filtered
 
     def add_best_exercise_value(self, exercise: Exercise_t, value: float) -> Self:
         self.best_exercise_values[exercise] = value
