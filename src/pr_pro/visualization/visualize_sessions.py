@@ -7,7 +7,6 @@ from itertools import groupby
 
 import pandas as pd
 
-from pr_pro.metrics import set_intensity
 from pr_pro.program import Program
 from pr_pro.sets import DurationSet, WorkingSet_t, format_duration
 
@@ -19,36 +18,17 @@ def _reps_text(working_set: WorkingSet_t) -> str:
     return str(working_set.reps)
 
 
-def _load(working_set: WorkingSet_t) -> tuple[float, str] | None:
-    """How heavy the set is, as a value and its unit: kilos if known, else % of 1RM."""
-    weight = getattr(working_set, 'weight', None)
-    if weight is not None:
-        # One decimal, as the PDF tables use for the same numbers.
-        return round(weight, 1), 'kg'
-    intensity = set_intensity(working_set)
-    return (round(intensity * 100), '%') if intensity is not None else None
-
-
 def sets_text(sets: Sequence[WorkingSet_t]) -> str:
-    """A session's sets for one exercise, in as few entries as say it.
-    Consecutive sets asking the same reps become one entry, 4x5, and their loads
-    collapse to the span they cover, so a ramp reads 6x1 @ 60-85kg rather than six
-    entries. A change of reps starts a new entry, since that is the structure worth
-    seeing here; the individual sets are in print(session) and the PDF.
+    """A session's sets for one exercise, as the rep schemes it asks for.
+
+    Consecutive sets wanting the same reps become one entry, 4x5, whatever they are
+    loaded with. The loads are in print(session), the PDF and the metric plots; here
+    they would make a column as wide as its heaviest cell for no gain in overview.
     """
-    described = [(_reps_text(s), _load(s)) for s in sets]
     entries = []
-    # Kilos and percentages never share an entry, so the unit is part of the key.
-    for (reps_text, unit), run in groupby(described, key=lambda d: (d[0], d[1][1] if d[1] else '')):
-        group = list(run)
-        count = f'{len(group)}x' if len(group) > 1 else ''
-        loads = [load[0] for _, load in group if load is not None]
-        if not loads:
-            entries.append(f'{count}{reps_text}')
-        elif min(loads) == max(loads):
-            entries.append(f'{count}{reps_text} @ {loads[0]:g}{unit}')
-        else:
-            entries.append(f'{count}{reps_text} @ {min(loads):g}-{max(loads):g}{unit}')
+    for reps_text, run in groupby(_reps_text(s) for s in sets):
+        count = len(list(run))
+        entries.append(f'{count}x{reps_text}' if count > 1 else reps_text)
     return ', '.join(entries)
 
 
@@ -59,7 +39,6 @@ def build_session_table(
 ) -> pd.DataFrame:
     """
     A table of what a handful of sessions actually contain, for reading side by side.
-    Call program.compute_values(...) first for the loads to show.
     """
     if session_ids is None:
         session_ids = list(program.workout_session_dict)

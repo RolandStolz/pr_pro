@@ -1,5 +1,8 @@
+import datetime
+
 import pytest
 
+from pr_pro.exercise import DurationExercise
 from pr_pro.exercises.common import backsquat, deadlift
 from pr_pro.visualization.visualize_sessions import (
     build_session_table,
@@ -10,27 +13,25 @@ from pr_pro.workout_component import SingleExercise
 from pr_pro.workout_session import WorkoutSession
 
 
-def test_a_ramp_collapses_to_the_span_it_covers():
-    """Same reps throughout, so six singles are one entry, not six."""
+def test_sets_of_the_same_reps_collapse_whatever_they_are_loaded_with():
+    """A ramp is six singles at six loads, and still just 6x1 here."""
     sets = [backsquat.create_set(1, weight=w) for w in (60, 65, 70, 75, 80, 85)]
 
-    assert sets_text(sets) == '6x1 @ 60-85kg'
-
-
-def test_kilos_and_percentages_do_not_share_an_entry():
-    sets = [
-        backsquat.create_set(5, weight=100),
-        backsquat.create_set(5, percentage=0.8),
-    ]
-
-    assert sets_text(sets) == '5 @ 100kg, 5 @ 80%'
+    assert sets_text(sets) == '6x1'
 
 
 def test_a_change_of_reps_starts_a_new_entry():
     """And a lone set carries no count."""
     sets = [backsquat.create_set(5, weight=100)] * 2 + [backsquat.create_set(3, weight=120)]
 
-    assert sets_text(sets) == '2x5 @ 100kg, 3 @ 120kg'
+    assert sets_text(sets) == '2x5, 3'
+
+
+def test_a_duration_set_shows_its_duration():
+    plank = DurationExercise(name='Plank')
+    sets = [plank.create_set(datetime.timedelta(seconds=90))] * 3
+
+    assert sets_text(sets) == '3x1:30'
 
 
 def test_columns_are_the_chosen_sessions_or_all_of_them(example_program):
@@ -87,7 +88,7 @@ def test_rows_follow_the_order_sessions_introduce_them(session_a, basic_program)
     table = build_session_table(basic_program)
 
     assert list(table.index) == [backsquat.name, deadlift.name]
-    assert table.loc[backsquat.name, 'later'] == '3 @ 80kg'
+    assert table.loc[backsquat.name, 'later'] == '3'
 
 
 def test_transposed_print_runs_sessions_down_the_page(example_program, capsys):
