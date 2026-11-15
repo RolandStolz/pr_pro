@@ -1,4 +1,8 @@
+import matplotlib
 import pytest
+
+# Plots are built and inspected in tests, never shown.
+matplotlib.use('Agg')
 
 from pr_pro.example import get_example_program, get_simple_example_program
 from pr_pro.exercises.common import backsquat, deadlift, pullup
