@@ -50,3 +50,10 @@ def test_get_number_of_sets(session_a, exercise_component, exercise_group_compon
     assert session_a.get_number_of_sets() == 4
     session_a.add_component(exercise_group_component)
     assert session_a.get_number_of_sets() == 10  # 4 + 2*3
+
+
+def test_get_exercise_sets_pools_an_exercise_trained_twice(session_a, exercise_component):
+    session_a.add_component(exercise_component).add_single_exercise(backsquat)
+
+    assert set(session_a.get_exercise_sets()) == {backsquat}
+    assert len(session_a.get_exercise_sets()[backsquat]) == len(exercise_component.sets)

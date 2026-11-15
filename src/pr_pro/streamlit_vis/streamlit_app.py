@@ -14,6 +14,8 @@ def run_streamlit_app(program: Program, use_persistent_state: bool = False):
         load_persisted_state_from_file()
 
     st.title(program.name)
+    if program.description:
+        st.markdown(f'_{program.description}_')
 
     # Sidebar
     with st.sidebar:
